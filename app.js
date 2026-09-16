@@ -529,6 +529,16 @@ function init() {
 
   setupInstallPrompt();
   registerServiceWorker();
+  setupAboutOverlay();
+}
+
+function setupAboutOverlay() {
+  const overlay = $("aboutOverlay");
+  const open = () => overlay.classList.add("open");
+  const close = () => overlay.classList.remove("open");
+  $("brandLogoBtn").addEventListener("click", open);
+  $("aboutClose").addEventListener("click", close);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
 }
 
 /* ============================================================

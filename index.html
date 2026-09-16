@@ -26,7 +26,9 @@
     <h1>Rørlegger-kalkulator</h1>
     <div class="sub" id="headerSub">Forbruksvann</div>
   </div>
-  <img class="brand-logo" src="brand/haaland-symbol-hvit.png" alt="Haaland">
+  <button class="brand-logo-btn" id="brandLogoBtn" aria-label="Om appen">
+    <img class="brand-logo" src="brand/haaland-symbol-hvit.png" alt="Haaland">
+  </button>
 </header>
 
 <main>
@@ -256,6 +258,14 @@
   <span id="installText">Legg til p&aring; hjemskjerm for rask tilgang &ndash; virker ogs&aring; uten nett.</span>
   <button id="installBtn">Installer</button>
   <button class="dismiss" id="installDismiss">&times;</button>
+</div>
+
+<div id="aboutOverlay" class="about-overlay">
+  <div class="about-card">
+    <div class="about-title">Produsert for Haaland AS</div>
+    <div class="about-sub">Av Mads Fj&aelig;rem</div>
+    <button class="about-close" id="aboutClose">Lukk</button>
+  </div>
 </div>
 
 <nav class="tabbar">
