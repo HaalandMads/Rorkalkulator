@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#1D3557">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rørkalk">
+<title>Rørlegger-kalkulator</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="appbar">
+  <svg class="glyph" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 4h9v5h5v11h-6V9H4V4z" fill="#B5651D"/>
+    <circle cx="7" cy="7" r="1.6" fill="#7A4310"/>
+    <circle cx="10" cy="17" r="1.6" fill="#7A4310"/>
+  </svg>
+  <div>
+    <h1>Rørlegger-kalkulator</h1>
+    <div class="sub" id="headerSub">Forbruksvann</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ======================= VIEW: FORBRUKSVANN ======================= -->
+  <section class="view active" id="view-forbruksvann">
+
+    <section class="card">
+      <div class="card-title">HURTIG KV OG VV</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Normalvannmengde &Sigma;qn<small>Sum av alle tappesteder</small></div>
+          <div class="field">
+            <input type="number" step="0.01" id="fv_qnKV" value="0.80">
+            <span class="unit">KV</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">&nbsp;</div>
+          <div class="field">
+            <input type="number" step="0.01" id="fv_qnVV" value="0.80">
+            <span class="unit">VV</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">St&oslash;rste tappested<small>Enkeltarmatur med h&oslash;yest forbruk</small></div>
+          <div class="field">
+            <input type="number" step="0.01" id="fv_maxKV" value="0.20">
+            <span class="unit">KV</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">&nbsp;</div>
+          <div class="field">
+            <input type="number" step="0.01" id="fv_maxVV" value="0.20">
+            <span class="unit">VV</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Antall branntromler<small>Min 2, maks 4 - kun n&aelig;ringsbygg</small></div>
+          <div class="field">
+            <input type="number" step="1" id="fv_hoses" value="0">
+            <span class="unit">stk</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Hastighet (dimensjon)<small>Anbefalt maks 2 m/s</small></div>
+          <div class="field">
+            <input type="number" step="0.1" id="fv_v" value="2.0">
+            <span class="unit">m/s</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">qs KV</div>
+        <div class="value" id="out_qsKV">-<span class="unit-sm">l/s</span></div>
+      </div>
+      <div class="result-row">
+        <div class="label">qs VV</div>
+        <div class="value" id="out_qsVV">-<span class="unit-sm">l/s</span></div>
+      </div>
+      <div class="note">qs = qn,maks + 0,015&middot;(&Sigma;qn&minus;qn,maks) + 0,17&middot;&radic;(&Sigma;qn&minus;qn,maks). Inkluderer vannmengde fra branntromler i KV.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">AUTOMATISK R&Oslash;RFORSLAG</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">R&oslash;rsystem</div>
+          <div class="field">
+            <select id="fv_system"></select>
+          </div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">KV &ndash; min. dim / foresl&aring;tt</div>
+        <div class="value" id="out_dimKV">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">VV &ndash; min. dim / foresl&aring;tt</div>
+        <div class="value" id="out_dimVV">-</div>
+      </div>
+      <div class="note">Foresl&aring;tt r&oslash;r er minste dimensjon i valgt system med innv. m&aring;l st&oslash;rre enn kravet. Kontroller alltid mot faktisk hastighet og produktdatablad.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">KALKULATOR &ndash; DIMENSJON / HASTIGHET / VOLUMSTR&Oslash;M</div>
+      <div class="card-body">
+        <div class="seg" id="calcSeg">
+          <button data-tool="dim" class="active">Finn dimensjon</button>
+          <button data-tool="vel">Finn hastighet</button>
+          <button data-tool="flow">Finn volumstr&oslash;m</button>
+        </div>
+
+        <div class="subtool active" id="tool-dim">
+          <div class="row"><div class="label">Volumstr&oslash;m</div><div class="field"><input type="number" step="0.01" id="d_q" value="0.44"><span class="unit">l/s</span></div></div>
+          <div class="row"><div class="label">Hastighet</div><div class="field"><input type="number" step="0.1" id="d_v" value="2.0"><span class="unit">m/s</span></div></div>
+        </div>
+        <div class="subtool" id="tool-vel">
+          <div class="row"><div class="label">Volumstr&oslash;m</div><div class="field"><input type="number" step="0.01" id="v_q" value="1.8"><span class="unit">l/s</span></div></div>
+          <div class="row"><div class="label">Innv. dimensjon</div><div class="field"><input type="number" step="0.1" id="v_d" value="32.6"><span class="unit">mm</span></div></div>
+        </div>
+        <div class="subtool" id="tool-flow">
+          <div class="row"><div class="label">Hastighet</div><div class="field"><input type="number" step="0.1" id="q_v" value="1.3"><span class="unit">m/s</span></div></div>
+          <div class="row"><div class="label">Innv. dimensjon</div><div class="field"><input type="number" step="0.1" id="q_d" value="32.6"><span class="unit">mm</span></div></div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label" id="calcOutLabel">Innvendig dimensjon</div>
+        <div class="value" id="calcOut">-</div>
+      </div>
+    </section>
+
+  </section>
+
+  <!-- ======================= VIEW: VENTETID ======================= -->
+  <section class="view" id="view-ventetid">
+    <section class="card">
+      <div class="card-title">VENTETID VARMTVANN</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">R&oslash;rets innvendige diameter</div>
+          <div class="field"><input type="number" step="0.1" id="vt_di" value="11.6"><span class="unit">mm</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Normalvannmengde, tappested</div>
+          <div class="field"><input type="number" step="0.01" id="vt_qn" value="0.10"><span class="unit">l/s</span></div>
+        </div>
+        <div class="row">
+          <div class="label">R&oslash;rets lengde</div>
+          <div class="field"><input type="number" step="0.1" id="vt_l" value="10"><span class="unit">m</span></div>
+        </div>
+      </div>
+      <div class="result-row" id="vt_result_row">
+        <div class="label">Ventetid</div>
+        <div class="value" id="out_ventetid">-<span class="unit-sm">sek</span></div>
+      </div>
+      <div class="note">t = (&pi;/4)&middot;di&sup2;&middot;L / (1000&middot;qn). Kilde: SINTEF Byggforsk SBF2011A0121. B&oslash;r normalt ikke overstige ca. 10 sekunder.</div>
+    </section>
+  </section>
+
+  <!-- ======================= VIEW: DIMENSJONER ======================= -->
+  <section class="view" id="view-dimensjoner">
+    <div class="search-wrap">
+      <select id="dim_system"></select>
+      <input type="text" id="dim_search" placeholder="S&oslash;k dimensjon (mm)&hellip;">
+    </div>
+    <table class="dimtable">
+      <thead><tr><th>System</th><th>Utv. [mm]</th><th>Innv. [mm]</th></tr></thead>
+      <tbody id="dimTableBody"></tbody>
+    </table>
+    <div class="note" style="margin-top:10px;">Nominelle referanseverdier. Kontroller alltid mot faktisk produktdatablad f&oslash;r bruk i prosjekt.</div>
+  </section>
+
+</main>
+
+<div id="installBanner">
+  <span id="installText">Legg til p&aring; hjemskjerm for rask tilgang &ndash; virker ogs&aring; uten nett.</span>
+  <button id="installBtn">Installer</button>
+  <button class="dismiss" id="installDismiss">&times;</button>
+</div>
+
+<nav class="tabbar">
+  <button data-view="forbruksvann" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h6M10 12V6h6v6M16 12v6H4v-6"/></svg>
+    <span>Forbruksvann</span>
+  </button>
+  <button data-view="ventetid">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    <span>Ventetid</span>
+  </button>
+  <button data-view="dimensjoner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span>Dimensjoner</span>
+  </button>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
