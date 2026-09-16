@@ -13,6 +13,10 @@ const PIPE_SYSTEMS = {
   "Mapress syrefast": [[12,10],[15,13],[18,16],[22,19.6],[28,25.6],[35,32],[42,39],[54,51],[76.1,72.1]],
 };
 
+// Brukes i "Automatisk rørforslag" (Forbruksvann) og rørvalget i Ventetid -
+// et bevisst mindre utvalg enn hele referansetabellen i Dimensjoner-fanen.
+const COMMON_SYSTEMS = ["PE-Rør", "Kobber", "Sanipex", "Mapress syrefast"];
+
 const $ = (id) => document.getElementById(id);
 const fmt = (n, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : "-");
 
@@ -22,7 +26,7 @@ const fmt = (n, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : "-");
 const STORE_KEY = "rorkalk_v1";
 function saveState() {
   const ids = ["fv_qnKV","fv_qnVV","fv_maxKV","fv_maxVV","fv_hoses","fv_v","fv_system",
-               "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l"];
+               "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim"];
   const state = {};
   ids.forEach(id => { const el = $(id); if (el) state[id] = el.value; });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
@@ -59,21 +63,74 @@ function suggestPipe(system, minDimMm) {
 }
 
 function populateSystemSelects() {
-  const names = Object.keys(PIPE_SYSTEMS);
-  for (const selId of ["fv_system", "dim_system"]) {
-    const sel = $(selId);
-    sel.innerHTML = "";
-    if (selId === "dim_system") {
-      const optAll = document.createElement("option");
-      optAll.value = "__ALL__";
-      optAll.textContent = "Alle systemer";
-      sel.appendChild(optAll);
-    }
-    names.forEach(n => {
-      const o = document.createElement("option");
-      o.value = n; o.textContent = n;
-      sel.appendChild(o);
-    });
+  // Forbruksvann: automatisk rørforslag - kun de 4 mest brukte systemene
+  const fvSel = $("fv_system");
+  fvSel.innerHTML = "";
+  COMMON_SYSTEMS.forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    fvSel.appendChild(o);
+  });
+
+  // Dimensjoner-fanen: hele referansetabellen, uendret
+  const dimSel = $("dim_system");
+  dimSel.innerHTML = "";
+  const optAll = document.createElement("option");
+  optAll.value = "__ALL__";
+  optAll.textContent = "Alle systemer";
+  dimSel.appendChild(optAll);
+  Object.keys(PIPE_SYSTEMS).forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    dimSel.appendChild(o);
+  });
+
+  // Ventetid: samme 4 systemer, pluss mulighet for å skrive inn selv
+  const vtSel = $("vt_system");
+  vtSel.innerHTML = "";
+  COMMON_SYSTEMS.forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    vtSel.appendChild(o);
+  });
+  const optCustom = document.createElement("option");
+  optCustom.value = "__CUSTOM__";
+  optCustom.textContent = "Egendefinert (skriv inn selv)";
+  vtSel.appendChild(optCustom);
+}
+
+function populateVentetidDims() {
+  const system = $("vt_system").value;
+  const dimSel = $("vt_dim");
+  const dimRow = $("vt_dim_row");
+  const diInput = $("vt_di");
+
+  if (system === "__CUSTOM__") {
+    dimRow.style.display = "none";
+    diInput.readOnly = false;
+    diInput.classList.remove("locked");
+    return;
+  }
+  dimRow.style.display = "flex";
+  dimSel.innerHTML = "";
+  (PIPE_SYSTEMS[system] || []).forEach(([outer, inner]) => {
+    const o = document.createElement("option");
+    o.value = inner;
+    o.textContent = outer + " mm  (innv. " + inner + " mm)";
+    dimSel.appendChild(o);
+  });
+  diInput.readOnly = true;
+  diInput.classList.add("locked");
+  applyVentetidDim();
+}
+
+function applyVentetidDim() {
+  const system = $("vt_system").value;
+  if (system === "__CUSTOM__") return;
+  const inner = parseFloat($("vt_dim").value);
+  if (Number.isFinite(inner)) {
+    $("vt_di").value = inner;
+    recalcVentetid();
   }
 }
 
@@ -190,6 +247,9 @@ function switchView(name) {
 function init() {
   populateSystemSelects();
   loadState();
+  populateVentetidDims();
+  loadState(); // gjenopprett lagret dimensjon nå som alternativene finnes
+  applyVentetidDim();
   renderDimTable();
 
   document.querySelectorAll("nav.tabbar button").forEach(btn => {
@@ -213,6 +273,8 @@ function init() {
   document.querySelectorAll("#view-ventetid input").forEach(el => {
     el.addEventListener("input", recalcVentetid);
   });
+  $("vt_system").addEventListener("change", () => { populateVentetidDims(); saveState(); });
+  $("vt_dim").addEventListener("change", () => { applyVentetidDim(); saveState(); });
 
   $("dim_system").addEventListener("change", renderDimTable);
   $("dim_search").addEventListener("input", renderDimTable);

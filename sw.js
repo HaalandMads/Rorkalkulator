@@ -1,4 +1,4 @@
-const CACHE_NAME = "rorkalk-v1";
+const CACHE_NAME = "rorkalk-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const ASSETS = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-512-maskable.png",
+  "./brand/haaland-symbol-hvit.png",
 ];
 
 self.addEventListener("install", (event) => {
