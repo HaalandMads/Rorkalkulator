@@ -579,17 +579,14 @@ function recalcFraEffektOverride(flow, props, recommendedInner) {
     warnBox.textContent = `For liten dimensjon - trykkfallet (${fmt(r.dpdl,1)} Pa/m) overstiger grensen på ${MAX_DPL} Pa/m. Velg en større dimensjon.`;
   } else {
     if (r.dpdl > WARN_DPL) row.classList.add("status-bad-yellow");
-    // sjekk om en mindre dimensjon i samme system også ville holdt seg under grensen -
-    // i så fall er valgt dimensjon trolig overdimensjonert.
-    const list = PIPE_SYSTEMS[system] || [];
-    const idx = list.findIndex(([outer, inner]) => inner === chosenInner);
-    if (idx > 0) {
-      const [, smallerInner] = list[idx - 1];
-      const rSmaller = evaluatePipe(flow, smallerInner, props.rho, props.nu, e);
-      if (rSmaller && rSmaller.dpdl <= MAX_DPL) {
+    // Er valgt dimensjon overdimensjonert? Sammenlign mot den faktisk BESTE
+    // (minste gyldige) dimensjonen i systemet - ikke bare ett hakk ned.
+    if (Number.isFinite(recommendedInner) && recommendedInner < chosenInner) {
+      const rBest = evaluatePipe(flow, recommendedInner, props.rho, props.nu, e);
+      if (rBest) {
         warnBox.style.display = "block";
         warnBox.className = "note warn";
-        warnBox.textContent = `Trykkfallet er lavt her - en mindre dimensjon (innv. ${smallerInner} mm) ville gitt ${fmt(rSmaller.dpdl,1)} Pa/m, fortsatt under grensen. Vurder om den er et bedre/rimeligere valg.`;
+        warnBox.textContent = `Trykkfallet er lavt her - beste dimensjon (n\u00e6rmest under ${MAX_DPL} Pa/m uten \u00e5 overstige den) er innv. ${recommendedInner} mm, som gir ${fmt(rBest.dpdl,1)} Pa/m. Vurder om den er et bedre/rimeligere valg.`;
       }
     }
   }
