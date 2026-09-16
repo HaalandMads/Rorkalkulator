@@ -188,6 +188,8 @@ input.locked {
 .result-row.status-ok .value { color: var(--ok); }
 .result-row.status-bad { border-top-color: var(--bad); background: #FCF1F0; }
 .result-row.status-bad .value { color: var(--bad); font-size: 16px; }
+.result-row.status-bad-yellow { border-top-color: #B8860B; background: #FFF9E6; }
+.result-row.status-bad-yellow .value { color: #8A6D00; }
 
 .note {
   font-size: 11.5px;

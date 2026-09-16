@@ -113,61 +113,6 @@
     </section>
 
     <section class="card">
-      <div class="card-title">R&Oslash;RDIMENSJON FRA EFFEKT</div>
-      <div class="card-body">
-        <div class="row">
-          <div class="label">Effekt</div>
-          <div class="field"><input type="number" step="0.1" id="fe_effekt" value="10"><span class="unit">kW</span></div>
-        </div>
-        <div class="row">
-          <div class="label">Turtemperatur</div>
-          <div class="field"><input type="number" step="0.1" id="fe_tur" value="60"><span class="unit">&deg;C</span></div>
-        </div>
-        <div class="row">
-          <div class="label">Returtemperatur</div>
-          <div class="field"><input type="number" step="0.1" id="fe_retur" value="40"><span class="unit">&deg;C</span></div>
-        </div>
-        <div class="row">
-          <div class="label">V&aelig;sketype</div>
-          <div class="field">
-            <select id="fe_fluid">
-              <option>Vann</option>
-              <option>Etylenglykol</option>
-              <option>Propylenglykol</option>
-            </select>
-          </div>
-        </div>
-        <div class="row" id="fe_conc_row">
-          <div class="label">Blandingsforhold</div>
-          <div class="field">
-            <select id="fe_conc"></select>
-          </div>
-        </div>
-        <div class="row">
-          <div class="label">Hastighet (dimensjon)</div>
-          <div class="field"><input type="number" step="0.1" id="fe_v" value="1.0"><span class="unit">m/s</span></div>
-        </div>
-        <div class="row">
-          <div class="label">R&oslash;rsystem</div>
-          <div class="field"><select id="fe_system"></select></div>
-        </div>
-      </div>
-      <div class="result-row">
-        <div class="label">&Delta;T / &rho; / cp</div>
-        <div class="value small" id="fe_props">-</div>
-      </div>
-      <div class="result-row">
-        <div class="label">Volumstr&oslash;m</div>
-        <div class="value" id="fe_flow">-<span class="unit-sm">l/s</span></div>
-      </div>
-      <div class="result-row">
-        <div class="label">Anbefalt r&oslash;rdimensjon</div>
-        <div class="value" id="fe_dim">-</div>
-      </div>
-      <div class="note">Volumstr&oslash;m = Effekt / (cp &middot; &Delta;T). &Delta;T = tur &minus; retur. Densitet og cp sl&aring;s opp automatisk etter v&aelig;sketype, blandingsforhold og gjennomsnittstemperatur ((tur+retur)/2). Kilde: Engineering ToolBox / produsentdata for glykol &ndash; kontroller mot faktisk v&aelig;ske ved kritiske anlegg.</div>
-    </section>
-
-    <section class="card">
       <div class="card-title">KALKULATOR &ndash; DIMENSJON / HASTIGHET / VOLUMSTR&Oslash;M</div>
       <div class="card-body">
         <div class="seg" id="calcSeg">
@@ -247,6 +192,63 @@
     </table>
     <div class="note" style="margin-top:10px;">Nominelle referanseverdier. Kontroller alltid mot faktisk produktdatablad f&oslash;r bruk i prosjekt.</div>
   </section>
+  <!-- ======================= VIEW: VARME/KJØL ======================= -->
+  <section class="view" id="view-varmekjol">
+    <section class="card">
+      <div class="card-title">R&Oslash;RDIMENSJON FRA EFFEKT</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Effekt</div>
+          <div class="field"><input type="number" step="0.1" id="fe_effekt" value="10"><span class="unit">kW</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Turtemperatur</div>
+          <div class="field"><input type="number" step="0.1" id="fe_tur" value="60"><span class="unit">&deg;C</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Returtemperatur</div>
+          <div class="field"><input type="number" step="0.1" id="fe_retur" value="40"><span class="unit">&deg;C</span></div>
+        </div>
+        <div class="row">
+          <div class="label">V&aelig;sketype</div>
+          <div class="field">
+            <select id="fe_fluid">
+              <option>Vann</option>
+              <option>Etylenglykol</option>
+              <option>Propylenglykol</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" id="fe_conc_row">
+          <div class="label">Blandingsforhold</div>
+          <div class="field">
+            <select id="fe_conc"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">R&oslash;rsystem</div>
+          <div class="field"><select id="fe_system"></select></div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">&Delta;T / &rho; / cp / &nu;</div>
+        <div class="value small" id="fe_props">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">Volumstr&oslash;m</div>
+        <div class="value" id="fe_flow">-<span class="unit-sm">l/s</span></div>
+      </div>
+      <div class="result-row" id="fe_dim_row">
+        <div class="label">Anbefalt r&oslash;rdimensjon</div>
+        <div class="value" id="fe_dim">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">Hastighet / trykkfall</div>
+        <div class="value small" id="fe_dp">-</div>
+      </div>
+      <div class="note">Volumstr&oslash;m = Effekt / (cp &middot; &Delta;T). &Delta;T = tur &minus; retur. Alle v&aelig;skeegenskaper (&rho;, cp, &nu;) sl&aring;s opp automatisk etter v&aelig;sketype, blandingsforhold og gjennomsnittstemperatur ((tur+retur)/2). R&oslash;rdimensjon velges som minste dimensjon i valgt system der trykkfallet ikke overstiger 120 Pa/m (gul = 100&ndash;120 Pa/m). Kilde: Engineering ToolBox / produsentdata for glykol &ndash; kontroller mot faktisk v&aelig;ske ved kritiske anlegg.</div>
+    </section>
+  </section>
 
 </main>
 
@@ -268,6 +270,10 @@
   <button data-view="dimensjoner">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
     <span>Dimensjoner</span>
+  </button>
+  <button data-view="varmekjol">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v10M8 9l4 4 4-4M5 15a7 7 0 0014 0"/></svg>
+    <span>Varme/Kj&oslash;l</span>
   </button>
 </nav>
 
