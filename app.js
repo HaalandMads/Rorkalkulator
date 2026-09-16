@@ -4,7 +4,7 @@
    Rørdata (nominelle verdier - se note i Dimensjoner-fanen)
    ============================================================ */
 const PIPE_SYSTEMS = {
-  "PE-Rør": [[16,12.4],[20,16],[25,20.4],[32,26],[40,32.6],[50,40.8],[63,51.4],[75,61.4],[90,73.6],[110,90],[125,102.2],[140,114.6],[160,130.8],[180,147.2],[200,163.6],[225,184],[250,204.6],[280,229.2],[315,257.8],[355,290.6]],
+  "PE-Rør SDR11": [[16,12.4],[20,16],[25,20.4],[32,26],[40,32.6],[50,40.8],[63,51.4],[75,61.4],[90,73.6],[110,90],[125,102.2],[140,114.6],[160,130.8],[180,147.2],[200,163.6],[225,184],[250,204.6],[280,229.2],[315,257.8],[355,290.6]],
   "FlowFit": [[16,12],[20,16],[25,20],[32,26.4],[40,34],[50,42.4],[63,55]],
   "Kobber": [[10,8.4],[12,10],[15,13],[18,16],[22,20],[28,25.6],[35,32],[42,39],[54,51],[76.1,72.1]],
   "Mepla": [[16,11.5],[20,15],[25,19],[32,26],[40,33],[50,42],[63,54]],
@@ -28,7 +28,7 @@ const PIPE_SYSTEMS = {
 
 // Brukes i "Automatisk rørforslag" (Forbruksvann) og rørvalget i Ventetid -
 // alt under "Vannfordeling" og "PE-X systemer" i originalarket, pluss Mapress syrefast.
-const COMMON_SYSTEMS = ["PE-Rør", "Kobber", "Sanipex", "LK PE-X", "Roth Multipex", "Mapress syrefast"];
+const COMMON_SYSTEMS = ["PE-Rør SDR11", "Kobber", "Sanipex", "LK PE-X", "Roth Multipex", "Mapress syrefast"];
 // Varme/Kjøl-fanen: alt under "Stålrør", pluss FlowFit, LK PAL, Mepla, Kobber og Roth Multipex.
 const HEAT_SYSTEMS = ["Mapress Galv", "Rillet stålrør", "Syrefaste stålrør", "Mapress syrefast",
                       "Blåmalt mellomserie gjenget rør", "FlowFit", "LK PAL", "Mepla", "Kobber", "Roth Multipex"];
@@ -36,7 +36,7 @@ const HEAT_SYSTEMS = ["Mapress Galv", "Rillet stålrør", "Syrefaste stålrør",
 // for trykkfallsberegningen i Varme/Kjøl-fanen. Stål/støpejern ruere enn
 // kobber/plastbaserte komposittsystemer (PEX/PE-X/PAL), som regnes hydraulisk glatte.
 const PIPE_ROUGHNESS = {
-  "PE-Rør": 0.007,
+  "PE-Rør SDR11": 0.007,
   "Kobber": 0.0015,
   "Sanipex": 0.007,
   "LK PE-X": 0.007,
@@ -192,7 +192,8 @@ const STORE_KEY = "rorkalk_v1";
 function saveState() {
   const ids = ["fv_qnKV","fv_qnVV","fv_maxKV","fv_maxVV","fv_hoses","fv_v","fv_system",
                "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim",
-               "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_system"];
+               "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_system","fe_override",
+               "me_tur","me_retur","me_fluid","me_conc","me_system","me_dim"];
   const state = {};
   ids.forEach(id => { const el = $(id); if (el) state[id] = el.value; });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
@@ -378,14 +379,111 @@ function recalcMiniTool() {
 }
 
 /* ============================================================
-   Rørdimensjon fra effekt (turtemp/returtemp, væske/glykol)
+   Utstyrsliste - Standard abonnementsvilkår for vann og avløp,
+   Tekniske bestemmelser (KS/Kommuneforlaget 2008), tabell 1
+   (vedlegg s. 37): "Normalvannmengder for tappesteder".
    ============================================================ */
+const EQUIPMENT_LIST = [
+  { name: "Drikkefontene", kv: 0.05, vv: null },
+  { name: "Klosettsisterne", kv: 0.1, vv: null },
+  { name: "Servantbatteri", kv: 0.1, vv: 0.1 },
+  { name: "Bid\u00e9batteri", kv: 0.1, vv: 0.1 },
+  { name: "Tappeventil/slangekran (innend\u00f8rs)", kv: 0.2, vv: 0.2 },
+  { name: "Oppvaskbatteri", kv: 0.2, vv: 0.2 },
+  { name: "Batteri til utslagsvask/skyllekar/vaskekar", kv: 0.2, vv: 0.2 },
+  { name: "Dusjbatteri", kv: 0.2, vv: 0.2 },
+  { name: "Vaskemaskin (husholdning)", kv: 0.2, vv: 0.2 },
+  { name: "Oppvaskmaskin (husholdning)", kv: 0.2, vv: null },
+  { name: "Badebatteri", kv: 0.3, vv: 0.3 },
+  { name: "Hagekran/g\u00e5rdskran", kv: 0.4, vv: null },
+  { name: "Spyleventil for urinaler", kv: 0.4, vv: null },
+  { name: "Spyleventil for WC", kv: 1.3, vv: null },
+];
+const EQ_STORE_KEY = "rorkalk_eq_v1";
+
+function eqCounts() {
+  try { return JSON.parse(localStorage.getItem(EQ_STORE_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveEqCounts(counts) {
+  try { localStorage.setItem(EQ_STORE_KEY, JSON.stringify(counts)); } catch (e) {}
+}
+
+function renderEquipmentList() {
+  const wrap = $("eqList");
+  wrap.innerHTML = "";
+  const counts = eqCounts();
+  EQUIPMENT_LIST.forEach((item, i) => {
+    const row = document.createElement("div");
+    row.className = "eq-row";
+    row.dataset.idx = i;
+    const count = counts[i] || 0;
+    if (count > 0) row.classList.add("eq-active");
+    const valsTxt = "KV " + item.kv.toFixed(2) + (item.vv != null ? " \u00b7 VV " + item.vv.toFixed(2) : "") + " l/s";
+    row.innerHTML =
+      `<div class="eq-name">${item.name}<span class="eq-vals">${valsTxt}</span></div>` +
+      `<div class="eq-stepper">` +
+      `<button type="button" class="eq-minus" aria-label="F\u00e6rre">\u2212</button>` +
+      `<span class="eq-count">${count}</span>` +
+      `<button type="button" class="eq-plus" aria-label="Flere">+</button>` +
+      `</div>`;
+    wrap.appendChild(row);
+  });
+
+  wrap.querySelectorAll(".eq-minus").forEach(btn => {
+    btn.addEventListener("click", () => stepEquipment(btn.closest(".eq-row").dataset.idx, -1));
+  });
+  wrap.querySelectorAll(".eq-plus").forEach(btn => {
+    btn.addEventListener("click", () => stepEquipment(btn.closest(".eq-row").dataset.idx, 1));
+  });
+}
+
+function stepEquipment(idx, delta) {
+  const counts = eqCounts();
+  const cur = counts[idx] || 0;
+  counts[idx] = Math.max(0, cur + delta);
+  saveEqCounts(counts);
+  renderEquipmentList();
+  recalcEquipment();
+}
+
+function recalcEquipment() {
+  const counts = eqCounts();
+  let sumKV = 0, sumVV = 0, maxKV = 0, maxVV = 0;
+  EQUIPMENT_LIST.forEach((item, i) => {
+    const n = counts[i] || 0;
+    if (n <= 0) return;
+    sumKV += n * item.kv;
+    if (item.kv > maxKV) maxKV = item.kv;
+    if (item.vv != null) {
+      sumVV += n * item.vv;
+      if (item.vv > maxVV) maxVV = item.vv;
+    }
+  });
+  $("eq_sums").innerHTML = `&Sigma;qn KV = ${sumKV.toFixed(2)} l/s &middot; &Sigma;qn VV = ${sumVV.toFixed(2)} l/s`;
+  $("eq_max").innerHTML = `KV = ${maxKV.toFixed(2)} l/s &middot; VV = ${maxVV.toFixed(2)} l/s`;
+
+  const enabled = $("eq_enabled").checked;
+  ["fv_qnKV", "fv_maxKV", "fv_qnVV", "fv_maxVV"].forEach(id => {
+    $(id).readOnly = enabled;
+    $(id).classList.toggle("locked", enabled);
+  });
+  if (enabled) {
+    $("fv_qnKV").value = sumKV.toFixed(2);
+    $("fv_maxKV").value = maxKV.toFixed(2);
+    $("fv_qnVV").value = sumVV.toFixed(2);
+    $("fv_maxVV").value = maxVV.toFixed(2);
+    recalcForbruksvann();
+  }
+  try { localStorage.setItem("rorkalk_eq_enabled", enabled ? "1" : "0"); } catch (e) {}
+}
+
+
 function updateFraEffektVisibility() {
   const fluid = $("fe_fluid").value;
   $("fe_conc_row").style.display = fluid === "Vann" ? "none" : "flex";
 }
 
-function recalcFraEffekt() {
+function recalcFraEffekt(resetOverride) {
   const effekt = parseFloat($("fe_effekt").value) || 0;
   const tur = parseFloat($("fe_tur").value);
   const retur = parseFloat($("fe_retur").value);
@@ -412,6 +510,7 @@ function recalcFraEffekt() {
   const dimRow = $("fe_dim_row");
   dimRow.classList.remove("status-ok", "status-bad", "status-bad-yellow");
   let dpLabel = "-";
+  let recommendedInner = null;
   if (Number.isFinite(flow)) {
     const sug = suggestPipeByPressureDrop(system, flow, props.rho, props.nu);
     if (sug) {
@@ -419,6 +518,7 @@ function recalcFraEffekt() {
       if (sug.dpdl > WARN_DPL) dimRow.classList.add("status-bad-yellow");
       dpLabel = `v=${fmt(sug.v,2)} m/s &middot; Re=${fmt(sug.Re,0)} &middot; ` +
                 `<b>${fmt(sug.dpdl,1)} Pa/m</b> (grense ${MAX_DPL} Pa/m)`;
+      recommendedInner = sug.inner;
     } else {
       $("fe_dim").textContent = "ingen dimensjon \u2264 " + MAX_DPL + " Pa/m";
       dimRow.classList.add("status-bad");
@@ -429,9 +529,169 @@ function recalcFraEffekt() {
   }
   $("fe_dp").innerHTML = dpLabel;
 
+  if (resetOverride) populateFeOverrideOptions(recommendedInner);
+  recalcFraEffektOverride(flow, props, recommendedInner);
   saveState();
 }
 
+/* ---- Overstyr dimensjon manuelt (samme tab) ---- */
+function populateFeOverrideOptions(preferInner) {
+  const system = $("fe_system").value;
+  const sel = $("fe_override");
+  sel.innerHTML = "";
+  const list = PIPE_SYSTEMS[system] || [];
+  list.forEach(([outer, inner]) => {
+    const o = document.createElement("option");
+    o.value = inner;
+    o.textContent = `${outer} mm  (innv. ${inner} mm)`;
+    sel.appendChild(o);
+  });
+  if (Number.isFinite(preferInner)) {
+    sel.value = preferInner;
+  }
+}
+
+function recalcFraEffektOverride(flow, props, recommendedInner) {
+  const system = $("fe_system").value;
+  const row = $("fe_override_row");
+  const warnBox = $("fe_override_warn");
+  row.classList.remove("status-ok", "status-bad", "status-bad-yellow");
+  warnBox.style.display = "none";
+
+  if (!Number.isFinite(flow)) {
+    $("fe_override_result").textContent = "-";
+    return;
+  }
+  const chosenInner = parseFloat($("fe_override").value);
+  if (!Number.isFinite(chosenInner)) { $("fe_override_result").textContent = "-"; return; }
+
+  const e = PIPE_ROUGHNESS[system];
+  const r = evaluatePipe(flow, chosenInner, props.rho, props.nu, e);
+  if (!r) { $("fe_override_result").textContent = "-"; return; }
+
+  $("fe_override_result").innerHTML =
+    `v=${fmt(r.v,2)} m/s &middot; Re=${fmt(r.Re,0)} &middot; <b>${fmt(r.dpdl,1)} Pa/m</b>`;
+
+  if (r.dpdl > MAX_DPL) {
+    row.classList.add("status-bad");
+    warnBox.style.display = "block";
+    warnBox.className = "note warn status-text-bad";
+    warnBox.textContent = `For liten dimensjon - trykkfallet (${fmt(r.dpdl,1)} Pa/m) overstiger grensen på ${MAX_DPL} Pa/m. Velg en større dimensjon.`;
+  } else {
+    if (r.dpdl > WARN_DPL) row.classList.add("status-bad-yellow");
+    // sjekk om en mindre dimensjon i samme system også ville holdt seg under grensen -
+    // i så fall er valgt dimensjon trolig overdimensjonert.
+    const list = PIPE_SYSTEMS[system] || [];
+    const idx = list.findIndex(([outer, inner]) => inner === chosenInner);
+    if (idx > 0) {
+      const [, smallerInner] = list[idx - 1];
+      const rSmaller = evaluatePipe(flow, smallerInner, props.rho, props.nu, e);
+      if (rSmaller && rSmaller.dpdl <= MAX_DPL) {
+        warnBox.style.display = "block";
+        warnBox.className = "note warn";
+        warnBox.textContent = `Trykkfallet er lavt her - en mindre dimensjon (innv. ${smallerInner} mm) ville gitt ${fmt(rSmaller.dpdl,1)} Pa/m, fortsatt under grensen. Vurder om den er et bedre/rimeligere valg.`;
+      }
+    }
+  }
+}
+
+
+/* ============================================================
+   Maks effekt fra dimensjon (motsatt vei av "Rørdimensjon fra
+   effekt") - finner største volumstrøm/effekt en gitt dimensjon
+   tåler før trykkfallet når 120 Pa/m, via binærsøk.
+   ============================================================ */
+function findMaxFlowForDpdl(dia_mm, rho, nu, e_mm, targetDpdl) {
+  let lo = 1e-6, hi = 50; // l/s - romslig øvre grense, halveres ned uansett
+  let r = evaluatePipe(hi, dia_mm, rho, nu, e_mm);
+  if (!r) return null;
+  // sørg for at intervallet faktisk omslutter target (dpdl øker monotont med Q)
+  let guard = 0;
+  while (r.dpdl < targetDpdl && guard < 30) { hi *= 2; r = evaluatePipe(hi, dia_mm, rho, nu, e_mm); guard++; }
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const rm = evaluatePipe(mid, dia_mm, rho, nu, e_mm);
+    if (!rm) { lo = mid; continue; }
+    if (rm.dpdl > targetDpdl) hi = mid; else lo = mid;
+  }
+  return evaluatePipe(lo, dia_mm, rho, nu, e_mm);
+}
+
+function populateMaxEffektSelects() {
+  const sysSel = $("me_system");
+  sysSel.innerHTML = "";
+  HEAT_SYSTEMS.forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    sysSel.appendChild(o);
+  });
+  const concSel = $("me_conc");
+  concSel.innerHTML = "";
+  GLYCOL_CONCENTRATIONS.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p; o.textContent = p + " %";
+    concSel.appendChild(o);
+  });
+  concSel.value = 30;
+  populateMaxEffektDims();
+}
+
+function populateMaxEffektDims() {
+  const system = $("me_system").value;
+  const sel = $("me_dim");
+  const current = sel.value;
+  sel.innerHTML = "";
+  (PIPE_SYSTEMS[system] || []).forEach(([outer, inner]) => {
+    const o = document.createElement("option");
+    o.value = inner;
+    o.textContent = `${outer} mm  (innv. ${inner} mm)`;
+    sel.appendChild(o);
+  });
+  if (current) sel.value = current;
+}
+
+function updateMaxEffektVisibility() {
+  const fluid = $("me_fluid").value;
+  $("me_conc_row").style.display = fluid === "Vann" ? "none" : "flex";
+}
+
+function recalcMaxEffekt() {
+  const tur = parseFloat($("me_tur").value);
+  const retur = parseFloat($("me_retur").value);
+  const fluid = $("me_fluid").value;
+  const conc = parseFloat($("me_conc").value) || 0;
+  const system = $("me_system").value;
+  const dia = parseFloat($("me_dim").value);
+
+  if (!Number.isFinite(tur) || !Number.isFinite(retur) || !Number.isFinite(dia)) return;
+  const dT = tur - retur;
+  const avgT = (tur + retur) / 2;
+  const props = fluidProps(fluid, conc, avgT);
+  const fluidLabel = fluid === "Vann" ? "Vann" : `${fluid} ${conc}%`;
+  $("me_props").innerHTML =
+    `&Delta;T=${fmt(dT,1)}\u00b0C &middot; ${fluidLabel} &middot; \u03c1=${fmt(props.rho,0)} kg/m\u00b3 &middot; ` +
+    `cp=${fmt(props.cp,0)} J/kg\u00b7K &middot; \u03bd=${props.nu.toExponential(2)} m\u00b2/s`;
+
+  const e = PIPE_ROUGHNESS[system];
+  const r = findMaxFlowForDpdl(dia, props.rho, props.nu, e, MAX_DPL);
+  if (!r) {
+    $("me_flow").textContent = "-";
+    $("me_effekt").textContent = "-";
+    $("me_v").textContent = "-";
+    return;
+  }
+  const flow = (r.v * Math.PI * dia * dia) / 4000; // reverser v -> Q
+
+  $("me_flow").innerHTML = fmt(flow, 3) + ' <span class="unit-sm">l/s</span>';
+  let effekt = NaN;
+  if (dT > 0 && props.cp > 0 && props.rho > 0) {
+    effekt = (flow * props.cp * dT * props.rho) / 1e6;
+  }
+  $("me_effekt").innerHTML = Number.isFinite(effekt) ? fmt(effekt, 2) + ' <span class="unit-sm">kW</span>' : "ugyldig \u0394T";
+  $("me_v").innerHTML = `v=${fmt(r.v,2)} m/s &middot; Re=${fmt(r.Re,0)} &middot; ${fmt(r.dpdl,1)} Pa/m`;
+
+  saveState();
+}
 
 function recalcVentetid() {
   const di = parseFloat($("vt_di").value) || 0;
@@ -484,6 +744,7 @@ function switchView(name) {
    ============================================================ */
 function init() {
   populateSystemSelects();
+  populateMaxEffektSelects();
   loadState();
   populateVentetidDims();
   loadState(); // gjenopprett lagret dimensjon nå som alternativene finnes
@@ -497,11 +758,28 @@ function init() {
   document.querySelectorAll("#view-forbruksvann input, #view-forbruksvann select").forEach(el => {
     el.addEventListener("input", () => { recalcForbruksvann(); recalcMiniTool(); });
   });
-  document.querySelectorAll("#view-varmekjol input, #view-varmekjol select").forEach(el => {
-    el.addEventListener("input", recalcFraEffekt);
+  $("eq_enabled").addEventListener("change", recalcEquipment);
+  try { $("eq_enabled").checked = localStorage.getItem("rorkalk_eq_enabled") === "1"; } catch (e) {}
+  renderEquipmentList();
+  recalcEquipment();
+
+  // --- Varme/Kjøl: "Rørdimensjon fra effekt" ---
+  document.querySelectorAll("#fe_effekt, #fe_tur, #fe_retur, #fe_fluid, #fe_conc").forEach(el => {
+    el.addEventListener("input", () => recalcFraEffekt(false));
   });
-  $("fe_fluid").addEventListener("change", () => { updateFraEffektVisibility(); recalcFraEffekt(); });
+  $("fe_fluid").addEventListener("change", () => { updateFraEffektVisibility(); recalcFraEffekt(false); });
+  $("fe_system").addEventListener("change", () => recalcFraEffekt(true));
+  $("fe_override").addEventListener("input", () => recalcFraEffekt(false));
   updateFraEffektVisibility();
+  populateFeOverrideOptions();
+
+  // --- Varme/Kjøl: "Maks effekt fra dimensjon" ---
+  document.querySelectorAll("#me_tur, #me_retur, #me_fluid, #me_conc, #me_dim").forEach(el => {
+    el.addEventListener("input", recalcMaxEffekt);
+  });
+  $("me_fluid").addEventListener("change", () => { updateMaxEffektVisibility(); recalcMaxEffekt(); });
+  $("me_system").addEventListener("change", () => { populateMaxEffektDims(); recalcMaxEffekt(); });
+  updateMaxEffektVisibility();
 
   document.querySelectorAll("#calcSeg button").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -525,7 +803,8 @@ function init() {
   recalcForbruksvann();
   recalcMiniTool();
   recalcVentetid();
-  recalcFraEffekt();
+  recalcFraEffekt(true);
+  recalcMaxEffekt();
 
   setupInstallPrompt();
   registerServiceWorker();

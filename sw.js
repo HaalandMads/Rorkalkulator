@@ -1,4 +1,4 @@
-const CACHE_NAME = "rorkalk-v8";
+const CACHE_NAME = "rorkalk-v10";
 const ASSETS = [
   "./",
   "./index.html",

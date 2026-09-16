@@ -37,6 +37,28 @@
   <section class="view active" id="view-forbruksvann">
 
     <section class="card">
+      <div class="card-title">UTSTYRSLISTE (STANDARD ABONNEMENTSVILK&Aring;R, TABELL 1)</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Bruk utstyrsliste for &Sigma;qn / st&oslash;rst tappested<small>L&aring;ser feltene under og fyller dem ut automatisk</small></div>
+          <div class="field">
+            <label class="switch"><input type="checkbox" id="eq_enabled"><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div id="eqList"></div>
+      <div class="result-row">
+        <div class="label">&Sigma;qn KV / VV fra utstyr</div>
+        <div class="value small" id="eq_sums">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">St&oslash;rst tappested KV / VV</div>
+        <div class="value small" id="eq_max">-</div>
+      </div>
+      <div class="note">Kilde: Standard abonnementsvilk&aring;r for vann og avl&oslash;p &ndash; Tekniske bestemmelser (KS/Kommuneforlaget 2008), tabell 1, vedlegg s. 37. &Sigma;qn og st&oslash;rst tappested sendes automatisk til &laquo;Hurtig KV og VV&raquo; under n&aring;r bryteren er p&aring;.</div>
+    </section>
+
+    <section class="card">
       <div class="card-title">HURTIG KV OG VV</div>
       <div class="card-body">
         <div class="row">
@@ -248,7 +270,71 @@
         <div class="label">Hastighet / trykkfall</div>
         <div class="value small" id="fe_dp">-</div>
       </div>
-      <div class="note">Volumstr&oslash;m = Effekt / (cp &middot; &Delta;T). &Delta;T = tur &minus; retur. Alle v&aelig;skeegenskaper (&rho;, cp, &nu;) sl&aring;s opp automatisk etter v&aelig;sketype, blandingsforhold og gjennomsnittstemperatur ((tur+retur)/2). R&oslash;rdimensjon velges som minste dimensjon i valgt system der trykkfallet ikke overstiger 120 Pa/m (gul = 100&ndash;120 Pa/m). Kilde: Engineering ToolBox / produsentdata for glykol &ndash; kontroller mot faktisk v&aelig;ske ved kritiske anlegg.</div>
+      <div class="card-body" style="padding-top:4px;">
+        <div class="row">
+          <div class="label">Overstyr dimensjon</div>
+          <div class="field"><select id="fe_override"></select></div>
+        </div>
+      </div>
+      <div class="result-row" id="fe_override_row">
+        <div class="label">Valgt dim. - hastighet/trykkfall</div>
+        <div class="value small" id="fe_override_result">-</div>
+      </div>
+      <div class="note warn" id="fe_override_warn" style="display:none;"></div>
+      <div class="note">Volumstr&oslash;m = Effekt / (cp &middot; &Delta;T). &Delta;T = tur &minus; retur. Alle v&aelig;skeegenskaper (&rho;, cp, &nu;) sl&aring;s opp automatisk etter v&aelig;sketype, blandingsforhold og gjennomsnittstemperatur ((tur+retur)/2). R&oslash;rdimensjon velges som minste dimensjon i valgt system der trykkfallet ikke overstiger 120 Pa/m (gul = 100&ndash;120 Pa/m). Du kan overstyre valget over og se konsekvensen. Kilde: Engineering ToolBox / produsentdata for glykol &ndash; kontroller mot faktisk v&aelig;ske ved kritiske anlegg.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">MAKS EFFEKT FRA DIMENSJON</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Turtemperatur</div>
+          <div class="field"><input type="number" step="0.1" id="me_tur" value="60"><span class="unit">&deg;C</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Returtemperatur</div>
+          <div class="field"><input type="number" step="0.1" id="me_retur" value="40"><span class="unit">&deg;C</span></div>
+        </div>
+        <div class="row">
+          <div class="label">V&aelig;sketype</div>
+          <div class="field">
+            <select id="me_fluid">
+              <option>Vann</option>
+              <option>Etylenglykol</option>
+              <option>Propylenglykol</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" id="me_conc_row">
+          <div class="label">Blandingsforhold</div>
+          <div class="field"><select id="me_conc"></select></div>
+        </div>
+        <div class="row">
+          <div class="label">R&oslash;rsystem</div>
+          <div class="field"><select id="me_system"></select></div>
+        </div>
+        <div class="row">
+          <div class="label">Dimensjon</div>
+          <div class="field"><select id="me_dim"></select></div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">&Delta;T / &rho; / cp / &nu;</div>
+        <div class="value small" id="me_props">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">Maks volumstr&oslash;m (120 Pa/m)</div>
+        <div class="value" id="me_flow">-<span class="unit-sm">l/s</span></div>
+      </div>
+      <div class="result-row">
+        <div class="label">Maks effekt</div>
+        <div class="value" id="me_effekt">-<span class="unit-sm">kW</span></div>
+      </div>
+      <div class="result-row">
+        <div class="label">Hastighet ved maks</div>
+        <div class="value small" id="me_v">-</div>
+      </div>
+      <div class="note">Finner st&oslash;rste volumstr&oslash;m (og dermed effekt) denne dimensjonen kan levere uten at trykkfallet overstiger 120 Pa/m. Nyttig n&aring;r r&oslash;ret allerede er lagt/valgt, og du vil sjekke hvor mye effekt det t&aring;ler.</div>
     </section>
   </section>
 
@@ -264,6 +350,7 @@
   <div class="about-card">
     <div class="about-title">Produsert for Haaland AS</div>
     <div class="about-sub">Av Mads Fj&aelig;rem</div>
+    <div class="about-version">Versjon: 0,35</div>
     <button class="about-close" id="aboutClose">Lukk</button>
   </div>
 </div>
