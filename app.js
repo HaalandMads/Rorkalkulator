@@ -762,6 +762,12 @@ function init() {
   try { $("eq_enabled").checked = localStorage.getItem("rorkalk_eq_enabled") === "1"; } catch (e) {}
   renderEquipmentList();
   recalcEquipment();
+  $("eqToggleBtn").addEventListener("click", () => {
+    const list = $("eqList");
+    const open = list.classList.toggle("eq-list-collapsed") === false;
+    $("eqToggleBtn").classList.toggle("open", open);
+    $("eqToggleLabel").textContent = open ? "Skjul utstyrsliste" : "Vis utstyrsliste";
+  });
 
   // --- Varme/Kjøl: "Rørdimensjon fra effekt" ---
   document.querySelectorAll("#fe_effekt, #fe_tur, #fe_retur, #fe_fluid, #fe_conc").forEach(el => {
