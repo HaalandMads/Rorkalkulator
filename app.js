@@ -17,6 +17,78 @@ const PIPE_SYSTEMS = {
 // et bevisst mindre utvalg enn hele referansetabellen i Dimensjoner-fanen.
 const COMMON_SYSTEMS = ["PE-Rør", "Kobber", "Sanipex", "Mapress syrefast"];
 
+/* ============================================================
+   Væskedata for "Fra effekt" - vann, etylenglykol, propylenglykol
+   Kilde: Engineering ToolBox (densitet/cp-tabeller) og Mokon
+   produktdatablad (temperaturtrend for propylenglykol cp),
+   kalibrert mot Engineering ToolBox' referanseverdier.
+   Densitet: vektfraksjon 0-0,6 x temp 0-100°C (kg/m³)
+   cp: vekt% 0-50 x temp 0-100°C (Btu/lb·°F, konverteres til J/kg·K)
+   ============================================================ */
+const BTU_TO_J = 4186.8;
+const GLYCOL = {
+  "Etylenglykol": {
+    densX: [0,0.1,0.2,0.3,0.4,0.5,0.6], densT: [0,20,40,60,80,100],
+    dens: [[1000,998,992,983,972,958],[1018,1014,1008,1000,992,984],[1036,1030,1022,1014,1005,995],
+           [1054,1046,1037,1027,1017,1007],[1072,1063,1052,1041,1030,1018],[1090,1079,1067,1055,1042,1030],
+           [1107,1095,1082,1068,1055,1042]],
+    cpX: [0,10,20,30,40,50], cpT: [0,10,20,30,40,50,60,70,80,90,100],
+    cp: [[1.0038,1.0018,1.0004,0.99943,0.99902,0.99913,0.99978,1.0009,1.0026,1.0049,1.0076],
+         [0.97236,0.97422,0.97619,0.97827,0.98047,0.98279,0.98521,0.98776,0.99041,0.99318,0.99607],
+         [0.93576,0.93976,0.94375,0.94775,0.95175,0.95574,0.95974,0.96373,0.96773,0.97173,0.97572],
+         [0.89889,0.90405,0.9092,0.91436,0.91951,0.92467,0.92982,0.93498,0.94013,0.94529,0.95044],
+         [0.85858,0.86484,0.87111,0.87737,0.88364,0.8899,0.89616,0.90243,0.90869,0.91496,0.92122],
+         [0.81485,0.82217,0.82949,0.83682,0.84414,0.85146,0.85878,0.8661,0.87343,0.88075,0.88807]],
+  },
+  "Propylenglykol": {
+    densX: [0,0.1,0.2,0.3,0.4,0.5,0.6], densT: [0,20,40,60,80,100],
+    dens: [[1000,998,993,983,972,958],[1012,1006,998,988,976,965],[1022,1014,1004,992,980,967],
+           [1031,1022,1010,997,983,969],[1041,1030,1016,1002,987,971],[1051,1038,1023,1006,990,974],
+           [1061,1046,1029,1011,994,976]],
+    cpX: [0,10,20,30,40,50], cpT: [0,10,20,30,40,50,60,70,80,90,100],
+    cp: [[1.0038,1.0018,1.0004,0.99943,0.99902,0.99913,0.99978,1.0009,1.0026,1.0049,1.0076],
+         [0.97705,0.97916,0.98157,0.98407,0.98662,0.98943,0.9925,0.99581,0.9994,1.00315,1.00706],
+         [0.9503,0.95652,0.96274,0.96872,0.97422,0.97973,0.98522,0.99071,0.9962,1.0014,1.00652],
+         [0.9161,0.92341,0.93072,0.93779,0.94439,0.95099,0.95758,0.96415,0.97073,0.97745,0.98421],
+         [0.8819,0.8903,0.89869,0.90686,0.91455,0.92225,0.92993,0.9376,0.94526,0.9535,0.9619],
+         [0.83537,0.84475,0.85413,0.86352,0.87293,0.88234,0.89174,0.90111,0.91049,0.92016,0.92992]],
+  },
+};
+const GLYCOL_CONCENTRATIONS = [5,10,15,20,25,30,35,40,45,50];
+
+function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+// Enkel bilineær interpolasjon i et rektangulært grid. xs/ys må være sortert stigende.
+function bilinear(xs, ys, grid, x, y) {
+  x = clamp(x, xs[0], xs[xs.length - 1]);
+  y = clamp(y, ys[0], ys[ys.length - 1]);
+  let i = 0; while (i < xs.length - 2 && xs[i + 1] < x) i++;
+  let j = 0; while (j < ys.length - 2 && ys[j + 1] < y) j++;
+  const x0 = xs[i], x1 = xs[i + 1], y0 = ys[j], y1 = ys[j + 1];
+  const fx = x1 > x0 ? (x - x0) / (x1 - x0) : 0;
+  const fy = y1 > y0 ? (y - y0) / (y1 - y0) : 0;
+  const v00 = grid[i][j], v10 = grid[i + 1][j], v01 = grid[i][j + 1], v11 = grid[i + 1][j + 1];
+  const v0 = v00 + (v10 - v00) * fx;
+  const v1 = v01 + (v11 - v01) * fx;
+  return v0 + (v1 - v0) * fy;
+}
+
+function fluidProps(fluidName, concentrationPct, tempC) {
+  if (fluidName === "Vann") {
+    const w = GLYCOL["Etylenglykol"];
+    return {
+      rho: bilinear(w.densX, w.densT, w.dens, 0, tempC),
+      cp: bilinear(w.cpX, w.cpT, w.cp, 0, tempC) * BTU_TO_J,
+    };
+  }
+  const g = GLYCOL[fluidName];
+  const x = (concentrationPct || 0) / 100;
+  return {
+    rho: bilinear(g.densX, g.densT, g.dens, x, tempC),
+    cp: bilinear(g.cpX, g.cpT, g.cp, concentrationPct || 0, tempC) * BTU_TO_J,
+  };
+}
+
 const $ = (id) => document.getElementById(id);
 const fmt = (n, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : "-");
 
@@ -26,7 +98,8 @@ const fmt = (n, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : "-");
 const STORE_KEY = "rorkalk_v1";
 function saveState() {
   const ids = ["fv_qnKV","fv_qnVV","fv_maxKV","fv_maxVV","fv_hoses","fv_v","fv_system",
-               "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim"];
+               "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim",
+               "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_v","fe_system"];
   const state = {};
   ids.forEach(id => { const el = $(id); if (el) state[id] = el.value; });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
@@ -71,6 +144,25 @@ function populateSystemSelects() {
     o.value = n; o.textContent = n;
     fvSel.appendChild(o);
   });
+
+  // "Rørdimensjon fra effekt": samme 4 systemer
+  const feSel = $("fe_system");
+  feSel.innerHTML = "";
+  COMMON_SYSTEMS.forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    feSel.appendChild(o);
+  });
+
+  // Blandingsforhold 5-50%, i 5%-trinn
+  const concSel = $("fe_conc");
+  concSel.innerHTML = "";
+  GLYCOL_CONCENTRATIONS.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p; o.textContent = p + " %";
+    concSel.appendChild(o);
+  });
+  concSel.value = 30;
 
   // Dimensjoner-fanen: hele referansetabellen, uendret
   const dimSel = $("dim_system");
@@ -193,8 +285,46 @@ function recalcMiniTool() {
 }
 
 /* ============================================================
-   Ventetid varmtvann
+   Rørdimensjon fra effekt (turtemp/returtemp, væske/glykol)
    ============================================================ */
+function updateFraEffektVisibility() {
+  const fluid = $("fe_fluid").value;
+  $("fe_conc_row").style.display = fluid === "Vann" ? "none" : "flex";
+}
+
+function recalcFraEffekt() {
+  const effekt = parseFloat($("fe_effekt").value) || 0;
+  const tur = parseFloat($("fe_tur").value);
+  const retur = parseFloat($("fe_retur").value);
+  const fluid = $("fe_fluid").value;
+  const conc = parseFloat($("fe_conc").value) || 0;
+  const v = parseFloat($("fe_v").value) || 0;
+
+  if (!Number.isFinite(tur) || !Number.isFinite(retur)) return;
+  const dT = tur - retur;
+  const avgT = (tur + retur) / 2;
+  const props = fluidProps(fluid, conc, avgT);
+
+  const fluidLabel = fluid === "Vann" ? "Vann" : `${fluid} ${conc}%`;
+  $("fe_props").innerHTML = `&Delta;T=${fmt(dT,1)}\u00b0C &middot; ${fluidLabel} &middot; \u03c1=${fmt(props.rho,0)} kg/m\u00b3 &middot; cp=${fmt(props.cp,0)} J/kg\u00b7K`;
+
+  let flow = NaN;
+  if (dT > 0 && props.cp > 0 && props.rho > 0) {
+    flow = (effekt * 1e6) / (props.cp * dT * props.rho);
+  }
+  $("fe_flow").innerHTML = Number.isFinite(flow) ? fmt(flow, 3) + ' <span class="unit-sm">l/s</span>' : "ugyldig \u0394T";
+
+  const dim = Number.isFinite(flow) ? minDim(flow, v) : NaN;
+  const system = $("fe_system").value;
+  const sug = suggestPipe(system, dim);
+  $("fe_dim").textContent = Number.isFinite(dim)
+    ? fmt(dim, 1) + " mm  \u2192  " + (sug ? sug.outer + " mm" : "utenfor tabell")
+    : "-";
+
+  saveState();
+}
+
+
 function recalcVentetid() {
   const di = parseFloat($("vt_di").value) || 0;
   const qn = parseFloat($("vt_qn").value) || 0;
@@ -257,8 +387,10 @@ function init() {
   });
 
   document.querySelectorAll("#view-forbruksvann input, #view-forbruksvann select").forEach(el => {
-    el.addEventListener("input", () => { recalcForbruksvann(); recalcMiniTool(); });
+    el.addEventListener("input", () => { recalcForbruksvann(); recalcMiniTool(); recalcFraEffekt(); });
   });
+  $("fe_fluid").addEventListener("change", () => { updateFraEffektVisibility(); recalcFraEffekt(); });
+  updateFraEffektVisibility();
 
   document.querySelectorAll("#calcSeg button").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -282,6 +414,7 @@ function init() {
   recalcForbruksvann();
   recalcMiniTool();
   recalcVentetid();
+  recalcFraEffekt();
 
   setupInstallPrompt();
   registerServiceWorker();
