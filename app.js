@@ -194,7 +194,7 @@ function saveState() {
                "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim",
                "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_system","fe_override",
                "me_tur","me_retur","me_fluid","me_conc","me_system","me_dim",
-               "av_qn","av_max","av_kurve","av_system","av_fall"];
+               "av_qn","av_max","av_kurve","av_system","av_fall","av_wc"];
   const state = {};
   ids.forEach(id => { const el = $(id); if (el) state[id] = el.value; });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
@@ -473,23 +473,33 @@ function suggestStandingPipe(flow, buildingType) {
   return null;
 }
 
-function suggestAvlopPipe(system, requiredInnerMm) {
+function suggestAvlopPipe(system, requiredInnerMm, minOuterMm) {
   const list = PIPE_SYSTEMS[system];
   if (!list) return null;
+  const minOuter = minOuterMm || 0;
   for (const [outer, inner] of list) {
-    if (inner >= requiredInnerMm) return { outer, inner };
+    if (inner >= requiredInnerMm && outer >= minOuter) return { outer, inner };
   }
   return null;
 }
 
-function suggestLiggendePipe(system, flow, fallPermille) {
+function suggestLiggendePipe(system, flow, fallPermille, minOuterMm) {
   const list = PIPE_SYSTEMS[system];
   if (!list) return null;
+  const minOuter = minOuterMm || 0;
   for (const [outer, inner] of list) {
+    if (outer < minOuter) continue;
     const cap = manningFullFlow(inner, fallPermille, MANNING_N_PLAST);
     if (cap >= flow) return { outer, inner, cap };
   }
   return null;
+}
+
+function totalAvEquipmentCount() {
+  const counts = avEqCounts();
+  let total = 0;
+  Object.values(counts).forEach(n => { total += (n || 0); });
+  return total;
 }
 
 function loglogInterp(points, x) {
@@ -630,6 +640,7 @@ function stepAvEquipment(idx, delta) {
   saveAvEqCounts(counts);
   renderAvEquipmentList();
   recalcAvEquipment();
+  recalcAvlop(); // antall utstyr påvirker bunnledningsregelen uansett bryterstilling
 }
 
 function recalcAvEquipment() {
@@ -667,28 +678,47 @@ function recalcAvlop() {
 
   const buildingType = $("av_kurve").value;
   const system = $("av_system").value;
+  const wcCount = parseFloat($("av_wc").value) || 0;
+  const isBunnledning = $("av_bunnledning").checked;
+  const totalEquipCount = totalAvEquipmentCount() + wcCount;
+
+  // Regelbaserte minstekrav (utvendig DN) som gjelder uansett beregnet mengde
+  let minOuterDN = 0;
+  let ruleNotes = [];
+  if (wcCount > 0) {
+    minOuterDN = Math.max(minOuterDN, 90);
+    ruleNotes.push("WC: min. DN 90 (helst DN 110)");
+  }
+  if (isBunnledning) {
+    const bunnMin = totalEquipCount <= 1 ? 75 : 110;
+    minOuterDN = Math.max(minOuterDN, bunnMin);
+    ruleNotes.push(`Bunnledning (${totalEquipCount || 1} utstyr): min. DN ${bunnMin}`);
+  }
 
   // Stående ventilert spillvannsledning (tabell 14 - eksakt oppslag)
-  const standingInner = suggestStandingPipe(result, buildingType);
-  if (standingInner) {
-    const pipe = suggestAvlopPipe(system, standingInner);
-    $("av_standing").textContent = pipe
-      ? `min. innv. ${standingInner} mm \u2192 ${pipe.outer} mm (innv. ${pipe.inner} mm)`
-      : `min. innv. ${standingInner} mm \u2192 utenfor tabell for valgt system`;
+  const standingInnerReq = suggestStandingPipe(result, buildingType) || 0;
+  const standingPipe = suggestAvlopPipe(system, standingInnerReq, minOuterDN);
+  if (standingPipe) {
+    $("av_standing").textContent = `${standingPipe.outer} mm (innv. ${standingPipe.inner} mm)`;
+  } else if (standingInnerReq) {
+    $("av_standing").textContent = `min. innv. ${standingInnerReq} mm \u2192 utenfor tabell for valgt system`;
   } else {
     $("av_standing").textContent = "over tabellens \u00f8vre grense (400 l/s type A / 200 l/s type B)";
   }
 
   // Liggende ventilert spillvannsledning (Manning-basert tilnærming til figur 8/9)
   const fall = parseFloat($("av_fall").value) || 0;
-  if (fall > 0 && result > 0) {
-    const pipe = suggestLiggendePipe(system, result, fall);
+  if (fall > 0) {
+    const pipe = suggestLiggendePipe(system, result, fall, minOuterDN);
     $("av_liggende").innerHTML = pipe
       ? `${pipe.outer} mm (innv. ${pipe.inner} mm) &middot; kapasitet ${fmt(pipe.cap,1)} l/s ved ${fall}\u2030`
-      : "ingen dimensjon i valgt system holder ved dette fallet";
+      : "ingen dimensjon i valgt system holder ved dette fallet/kravet";
   } else {
     $("av_liggende").textContent = "-";
   }
+
+  $("av_rules_active").textContent = ruleNotes.length ? ruleNotes.join(" \u00b7 ") : "";
+  $("av_rules_active").style.display = ruleNotes.length ? "block" : "none";
 
   saveState();
 }
@@ -1000,8 +1030,14 @@ function init() {
     o.value = n; o.textContent = n;
     avSysSel.appendChild(o);
   });
-  document.querySelectorAll("#av_qn, #av_max, #av_kurve, #av_system, #av_fall").forEach(el => {
+  document.querySelectorAll("#av_qn, #av_max, #av_kurve, #av_system, #av_fall, #av_wc, #av_bunnledning").forEach(el => {
     el.addEventListener("input", recalcAvlop);
+  });
+  $("rulesToggleBtn").addEventListener("click", () => {
+    const list = $("rulesList");
+    const open = list.classList.toggle("eq-list-collapsed") === false;
+    $("rulesToggleBtn").classList.toggle("open", open);
+    $("rulesToggleLabel").textContent = open ? "Skjul n\u00f8kkelregler" : "Vis n\u00f8kkelregler";
   });
   $("av_eq_enabled").addEventListener("change", recalcAvEquipment);
   try { $("av_eq_enabled").checked = localStorage.getItem("rorkalk_av_eq_enabled") === "1"; } catch (e) {}

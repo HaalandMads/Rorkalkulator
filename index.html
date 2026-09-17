@@ -244,6 +244,16 @@
           <div class="label">Fall p&aring; liggende ledning</div>
           <div class="field"><input type="number" step="1" id="av_fall" value="20"><span class="unit">&permil;</span></div>
         </div>
+        <div class="row">
+          <div class="label">Antall WC p&aring; ledningen<small>WC har alltid min. DN 90 (helst DN 110), uansett beregnet mengde</small></div>
+          <div class="field"><input type="number" step="1" id="av_wc" value="0"></div>
+        </div>
+        <div class="row">
+          <div class="label">Dette er en bunnledning<small>Min. DN 75 (kun ved 1 utstyr), ellers min. DN 110</small></div>
+          <div class="field">
+            <label class="switch"><input type="checkbox" id="av_bunnledning"><span class="slider"></span></label>
+          </div>
+        </div>
       </div>
       <div class="result-row">
         <div class="label">St&aring;ende ventilert (tabell 14)</div>
@@ -253,12 +263,13 @@
         <div class="label">Liggende ventilert (figur 8/9)</div>
         <div class="value small" id="av_liggende">-</div>
       </div>
-      <div class="note">St&aring;ende: eksakt oppslag i tabell 14 (115 mm-trinnet gjelder plast). Liggende: fysikkbasert tiln&aelig;rming til figur 9 (Manning-formel for gravitasjonsstr&oslash;m i glatte plastr&oslash;r, n&#8776;0,010) &ndash; ikke en pikselnøyaktig avlesning av selve diagrammet. Kontroller mot figur 9 for kritiske anlegg. R&oslash;rforslag hentes kun fra PP-Grunnavl&oslash;p, PP avl&oslash;p, PVC-Grunnavl&oslash;p og Overvann, MA og Geberit Silent.</div>
+      <div class="note warn" id="av_rules_active" style="display:none;"></div>
+      <div class="note">St&aring;ende: eksakt oppslag i tabell 14 (115 mm-trinnet gjelder plast). Liggende: fysikkbasert tiln&aelig;rming til figur 9 (Manning-formel for gravitasjonsstr&oslash;m i glatte plastr&oslash;r, n&#8776;0,010) &ndash; ikke en pikselnøyaktig avlesning av selve diagrammet. Kontroller mot figur 9 for kritiske anlegg. Bunnledning: minste dimensjon er alltid DN 75, og DN 75 skal ikke benyttes til mer enn &eacute;tt utstyr - ved flere utstyr kreves min. DN 110. R&oslash;rforslag hentes kun fra PP-Grunnavl&oslash;p, PP avl&oslash;p, PVC-Grunnavl&oslash;p og Overvann, MA og Geberit Silent.</div>
     </section>
 
     <section class="card">
       <div class="card-title">N&Oslash;KKELREGLER (STANDARD ABONNEMENTSVILK&Aring;R S. 22&ndash;25)</div>
-      <div class="card-body" style="font-size:12.5px; line-height:1.5;">
+      <div id="rulesList" class="eq-list-collapsed" style="font-size:12.5px; line-height:1.5;">
         <div class="row"><div class="label">Minste dimensjon utvendig stikkledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 110</div></div>
         <div class="row"><div class="label">Minste dim. ventilert bunnledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 110</div></div>
         <div class="row"><div class="label">Minste dim. bunnledning, enkeltutstyr</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 75</div></div>
@@ -269,7 +280,11 @@
         <div class="row"><div class="label">Minste fall, ikke-ventilert bunnledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">1:60</div></div>
         <div class="row"><div class="label">Min. ventilasjonsledning (&Sigma;qn &le; 5,0 l/s)</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 75</div></div>
       </div>
-      <div class="note warn">Dette er utdrag av grunnregler, ikke en fullstendig dimensjoneringstabell. Selve r&oslash;rdimensjonen (tabell 14 og figur 8/9, st&aring;ende/liggende ventilerte ledninger) er fortsatt basert p&aring; diagrammer jeg ikke har digitalisert data for. Bruk resultatet over sammen med disse grunnreglene til manuell dimensjonering, eller send meg de figurene ogs&aring; om du &oslash;nsker full automatikk.</div>
+      <button type="button" class="eq-toggle-btn" id="rulesToggleBtn">
+        <span id="rulesToggleLabel">Vis n&oslash;kkelregler</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="note warn">Dette er utdrag av grunnregler, ikke en fullstendig dimensjoneringstabell. WC- og bunnledningsregler er n&aring; bygget inn i r&oslash;rforslaget over automatisk.</div>
     </section>
 
     </div><!-- /fv-avlop -->
@@ -460,7 +475,7 @@
   <div class="about-card">
     <div class="about-title">Produsert for Haaland AS</div>
     <div class="about-sub">Av Mads Fj&aelig;rem</div>
-    <div class="about-version">Versjon: 0,38</div>
+    <div class="about-version">Versjon: 0,39</div>
     <button class="about-close" id="aboutClose">Lukk</button>
   </div>
 </div>
