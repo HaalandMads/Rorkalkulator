@@ -194,7 +194,7 @@ function saveState() {
                "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim",
                "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_system","fe_override",
                "me_tur","me_retur","me_fluid","me_conc","me_system","me_dim",
-               "av_qn","av_max","av_kurve","av_system","av_fall","av_wc"];
+               "av_qn","av_max","av_kurve","av_system","av_fall_ratio","av_wc"];
   const state = {};
   ids.forEach(id => { const el = $(id); if (el) state[id] = el.value; });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
@@ -413,23 +413,22 @@ const EQ_STORE_KEY = "rorkalk_eq_v1";
 const EQUIPMENT_LIST_AVLOP = [
   { name: "Drikkefontene", q: 0.1 },
   { name: "Bid\u00e9", q: 0.3 },
+  { name: "WC", q: 1.8 },
   { name: "Servant med 1\" bunnventil", q: 0.3 },
   { name: "Urinal (pr. stand) og veggurinal", q: 0.3 },
-  { name: "Dusj", q: 0.4 },
   { name: "Servant med 1 1/4\" bunnventil", q: 0.4 },
-  { name: "Vaskerenne pr. m", q: 0.4 },
+  { name: "Vaskerenne", q: 0.4 },
   { name: "Oppvask (enkel/dobbel) og planvask", q: 0.6 },
   { name: "Vaskemaskin i leilighet", q: 0.6 },
   { name: "Oppvaskmaskin i leilighet", q: 0.6 },
   { name: "Vaskekar", q: 0.6 },
   { name: "Badekar", q: 0.9 },
-  { name: "Utslagsvask, laboratorievask, grytevask", q: 0.9 },
+  { name: "Utslagsvask, laboratorievask", q: 0.9 },
   { name: "Kombinert opp- og utslagsvask", q: 0.9 },
   { name: "Golvsluk, 75 mm st\u00f8pejern", q: 1.2 },
   { name: "Vaskemaskin i fellesvaskeri for boliger", q: 1.2 },
   { name: "Oppvaskmaskin i erverv, liten st\u00f8rrelse", q: 1.2 },
   { name: "Golvsluk, 75 mm plast", q: 1.5 },
-  { name: "Utslagssk\u00e5l, bekkenspyler WC", q: 1.8 },
   { name: "Golvsluk, 110 mm", q: 2.0 },
 ];
 const AV_EQ_STORE_KEY = "rorkalk_av_eq_v1";
@@ -503,8 +502,12 @@ function totalAvEquipmentCount() {
 }
 
 function loglogInterp(points, x) {
-  if (x <= points[0][0]) {
-    x = points[0][0];
+  const first = points[0][0];
+  if (x <= first) {
+    // Under grafens dokumenterte område (< 5 l/s sum) er det ingen reell
+    // samtidighetsreduksjon å hente ut av kurven ennå - bruk summen direkte
+    // i stedet for å klemme opp til kurvens laveste ankerpunkt.
+    return x;
   }
   const last = points[points.length - 1][0];
   if (x > last) x = last;
@@ -707,11 +710,12 @@ function recalcAvlop() {
   }
 
   // Liggende ventilert spillvannsledning (Manning-basert tilnærming til figur 8/9)
-  const fall = parseFloat($("av_fall").value) || 0;
+  const fallRatio = parseFloat($("av_fall_ratio").value) || 60;
+  const fall = fallRatio > 0 ? 1000 / fallRatio : 0; // 1:X -> promille
   if (fall > 0) {
     const pipe = suggestLiggendePipe(system, result, fall, minOuterDN);
     $("av_liggende").innerHTML = pipe
-      ? `${pipe.outer} mm (innv. ${pipe.inner} mm) &middot; kapasitet ${fmt(pipe.cap,1)} l/s ved ${fall}\u2030`
+      ? `${pipe.outer} mm (innv. ${pipe.inner} mm) &middot; kapasitet ${fmt(pipe.cap,1)} l/s ved 1:${fmt(fallRatio,0)}`
       : "ingen dimensjon i valgt system holder ved dette fallet/kravet";
   } else {
     $("av_liggende").textContent = "-";
@@ -1030,7 +1034,7 @@ function init() {
     o.value = n; o.textContent = n;
     avSysSel.appendChild(o);
   });
-  document.querySelectorAll("#av_qn, #av_max, #av_kurve, #av_system, #av_fall, #av_wc, #av_bunnledning").forEach(el => {
+  document.querySelectorAll("#av_qn, #av_max, #av_kurve, #av_system, #av_fall_ratio, #av_wc, #av_bunnledning").forEach(el => {
     el.addEventListener("input", recalcAvlop);
   });
   $("rulesToggleBtn").addEventListener("click", () => {
