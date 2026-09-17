@@ -193,7 +193,8 @@ function saveState() {
   const ids = ["fv_qnKV","fv_qnVV","fv_maxKV","fv_maxVV","fv_hoses","fv_v","fv_system",
                "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim",
                "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_system","fe_override",
-               "me_tur","me_retur","me_fluid","me_conc","me_system","me_dim"];
+               "me_tur","me_retur","me_fluid","me_conc","me_system","me_dim",
+               "av_qn","av_max","av_kurve","av_system","av_fall"];
   const state = {};
   ids.forEach(id => { const el = $(id); if (el) state[id] = el.value; });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
@@ -401,6 +402,113 @@ const EQUIPMENT_LIST = [
 ];
 const EQ_STORE_KEY = "rorkalk_eq_v1";
 
+/* ============================================================
+   Avløp - Standard abonnementsvilkår, tabell 13 (normalvannmengde
+   fra utstyr med selvstendig vannlås) og figur 7 (samtidighet).
+   Digitalisert fra bilder av originaltabellen/-grafen levert av
+   bruker. Figur 7 er logg-logg-kurver, digitalisert som ankerpunkt
+   og interpolert i logg-logg-rom (kryssjekket mot kjent fasit:
+   13 l/s sum -> ca. 2,4 l/s på Kurve A).
+   ============================================================ */
+const EQUIPMENT_LIST_AVLOP = [
+  { name: "Drikkefontene", q: 0.1 },
+  { name: "Bid\u00e9", q: 0.3 },
+  { name: "Servant med 1\" bunnventil", q: 0.3 },
+  { name: "Urinal (pr. stand) og veggurinal", q: 0.3 },
+  { name: "Dusj", q: 0.4 },
+  { name: "Servant med 1 1/4\" bunnventil", q: 0.4 },
+  { name: "Vaskerenne pr. m", q: 0.4 },
+  { name: "Oppvask (enkel/dobbel) og planvask", q: 0.6 },
+  { name: "Vaskemaskin i leilighet", q: 0.6 },
+  { name: "Oppvaskmaskin i leilighet", q: 0.6 },
+  { name: "Vaskekar", q: 0.6 },
+  { name: "Badekar", q: 0.9 },
+  { name: "Utslagsvask, laboratorievask, grytevask", q: 0.9 },
+  { name: "Kombinert opp- og utslagsvask", q: 0.9 },
+  { name: "Golvsluk, 75 mm st\u00f8pejern", q: 1.2 },
+  { name: "Vaskemaskin i fellesvaskeri for boliger", q: 1.2 },
+  { name: "Oppvaskmaskin i erverv, liten st\u00f8rrelse", q: 1.2 },
+  { name: "Golvsluk, 75 mm plast", q: 1.5 },
+  { name: "Utslagssk\u00e5l, bekkenspyler WC", q: 1.8 },
+  { name: "Golvsluk, 110 mm", q: 2.0 },
+];
+const AV_EQ_STORE_KEY = "rorkalk_av_eq_v1";
+
+const SAMTIDIGHET_KURVE_A = [[5,1.75],[10,2.12],[20,2.56],[50,3.3],[100,4.57],[200,6.33],[500,9.75],[1000,13.5]];
+const SAMTIDIGHET_KURVE_B = [[5,2.4],[10,2.86],[20,3.41],[50,4.3],[100,6.07],[200,8.56],[500,13.46],[1000,19]];
+
+// Tabell 14 - tillatt belastning av stående ventilerte spillvannsledninger.
+// 115 mm gjelder kun plast, 125 mm kun støpejern - alle 5 tillatte
+// avløpssystemer under er plastbaserte, så 115 mm-tрinnet brukes her.
+const STANDING_TABLE_14 = [
+  [45, 1.4, 0.7],
+  [65, 8, 4],
+  [80, 26, 13],
+  [100, 90, 45],
+  [115, 230, 115],
+];
+
+// Rørsystemer tillatt for avløpsforslag (ekskl. begge Pragma-variantene)
+const AVLOP_SYSTEMS = ["PP-Grunnavl\u00f8p", "PP avl\u00f8p", "PVC-Grunnavl\u00f8p og Overvann", "MA", "Geberit Silent"];
+
+// Liggende ventilerte spillvannsledninger (figur 8/støpejern-betong, figur 9/plast) -
+// disse diagrammene er nomogrammer basert på gravitasjonsstrømning i rør (Manning-type
+// formel: Q = (1/n)·A·R^(2/3)·I^(1/2)). Siden alle tillatte avløpssystemer over er plast,
+// bruker vi standard Manning-tall for glatte plastrør (n≈0,010). Dette er en fysikkbasert
+// tilnærming til figur 9, ikke en pikselnøyaktig avlesning av selve diagrammet.
+const MANNING_N_PLAST = 0.010;
+
+function manningFullFlow(diaInnerMm, fallPermille, n) {
+  const D = diaInnerMm / 1000;
+  const I = fallPermille / 1000;
+  const Q = (0.3117 / n) * Math.pow(D, 8 / 3) * Math.sqrt(I);
+  return Q * 1000; // l/s
+}
+
+function suggestStandingPipe(flow, buildingType) {
+  const col = buildingType === "B" ? 2 : 1;
+  for (const row of STANDING_TABLE_14) {
+    if (flow <= row[col]) return row[0]; // innv. diameter [mm]
+  }
+  return null;
+}
+
+function suggestAvlopPipe(system, requiredInnerMm) {
+  const list = PIPE_SYSTEMS[system];
+  if (!list) return null;
+  for (const [outer, inner] of list) {
+    if (inner >= requiredInnerMm) return { outer, inner };
+  }
+  return null;
+}
+
+function suggestLiggendePipe(system, flow, fallPermille) {
+  const list = PIPE_SYSTEMS[system];
+  if (!list) return null;
+  for (const [outer, inner] of list) {
+    const cap = manningFullFlow(inner, fallPermille, MANNING_N_PLAST);
+    if (cap >= flow) return { outer, inner, cap };
+  }
+  return null;
+}
+
+function loglogInterp(points, x) {
+  if (x <= points[0][0]) {
+    x = points[0][0];
+  }
+  const last = points[points.length - 1][0];
+  if (x > last) x = last;
+  const lx = points.map(p => Math.log(p[0]));
+  const ly = points.map(p => Math.log(p[1]));
+  let i = 0;
+  const lxq = Math.log(x);
+  while (i < lx.length - 2 && lx[i + 1] < lxq) i++;
+  const x0 = lx[i], x1 = lx[i + 1], y0 = ly[i], y1 = ly[i + 1];
+  const f = x1 > x0 ? (lxq - x0) / (x1 - x0) : 0;
+  return Math.exp(y0 + (y1 - y0) * f);
+}
+
+
 function eqCounts() {
   try { return JSON.parse(localStorage.getItem(EQ_STORE_KEY)) || {}; } catch (e) { return {}; }
 }
@@ -477,6 +585,113 @@ function recalcEquipment() {
   try { localStorage.setItem("rorkalk_eq_enabled", enabled ? "1" : "0"); } catch (e) {}
 }
 
+
+/* ============================================================
+   Avløp: utstyrsliste og samtidighet
+   ============================================================ */
+function avEqCounts() {
+  try { return JSON.parse(localStorage.getItem(AV_EQ_STORE_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveAvEqCounts(counts) {
+  try { localStorage.setItem(AV_EQ_STORE_KEY, JSON.stringify(counts)); } catch (e) {}
+}
+
+function renderAvEquipmentList() {
+  const wrap = $("avEqList");
+  wrap.innerHTML = "";
+  const counts = avEqCounts();
+  EQUIPMENT_LIST_AVLOP.forEach((item, i) => {
+    const row = document.createElement("div");
+    row.className = "eq-row";
+    row.dataset.idx = i;
+    const count = counts[i] || 0;
+    if (count > 0) row.classList.add("eq-active");
+    row.innerHTML =
+      `<div class="eq-name">${item.name}<span class="eq-vals">${item.q.toFixed(2)} l/s</span></div>` +
+      `<div class="eq-stepper">` +
+      `<button type="button" class="eq-minus" aria-label="F\u00e6rre">\u2212</button>` +
+      `<span class="eq-count">${count}</span>` +
+      `<button type="button" class="eq-plus" aria-label="Flere">+</button>` +
+      `</div>`;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll(".eq-minus").forEach(btn => {
+    btn.addEventListener("click", () => stepAvEquipment(btn.closest(".eq-row").dataset.idx, -1));
+  });
+  wrap.querySelectorAll(".eq-plus").forEach(btn => {
+    btn.addEventListener("click", () => stepAvEquipment(btn.closest(".eq-row").dataset.idx, 1));
+  });
+}
+
+function stepAvEquipment(idx, delta) {
+  const counts = avEqCounts();
+  const cur = counts[idx] || 0;
+  counts[idx] = Math.max(0, cur + delta);
+  saveAvEqCounts(counts);
+  renderAvEquipmentList();
+  recalcAvEquipment();
+}
+
+function recalcAvEquipment() {
+  const counts = avEqCounts();
+  let sum = 0, max = 0;
+  EQUIPMENT_LIST_AVLOP.forEach((item, i) => {
+    const n = counts[i] || 0;
+    if (n <= 0) return;
+    sum += n * item.q;
+    if (item.q > max) max = item.q;
+  });
+  $("av_eq_sum").innerHTML = `&Sigma;qn = ${sum.toFixed(2)} l/s`;
+  $("av_eq_max").innerHTML = `${max.toFixed(2)} l/s`;
+
+  const enabled = $("av_eq_enabled").checked;
+  ["av_qn", "av_max"].forEach(id => {
+    $(id).readOnly = enabled;
+    $(id).classList.toggle("locked", enabled);
+  });
+  if (enabled) {
+    $("av_qn").value = sum.toFixed(2);
+    $("av_max").value = max.toFixed(2);
+    recalcAvlop();
+  }
+  try { localStorage.setItem("rorkalk_av_eq_enabled", enabled ? "1" : "0"); } catch (e) {}
+}
+
+function recalcAvlop() {
+  const qn = parseFloat($("av_qn").value) || 0;
+  const max = parseFloat($("av_max").value) || 0;
+  const kurve = $("av_kurve").value === "B" ? SAMTIDIGHET_KURVE_B : SAMTIDIGHET_KURVE_A;
+  let result = qn > 0 ? loglogInterp(kurve, qn) : 0;
+  result = Math.max(result, max);
+  $("av_result").innerHTML = fmt(result, 2) + ' <span class="unit-sm">l/s</span>';
+
+  const buildingType = $("av_kurve").value;
+  const system = $("av_system").value;
+
+  // Stående ventilert spillvannsledning (tabell 14 - eksakt oppslag)
+  const standingInner = suggestStandingPipe(result, buildingType);
+  if (standingInner) {
+    const pipe = suggestAvlopPipe(system, standingInner);
+    $("av_standing").textContent = pipe
+      ? `min. innv. ${standingInner} mm \u2192 ${pipe.outer} mm (innv. ${pipe.inner} mm)`
+      : `min. innv. ${standingInner} mm \u2192 utenfor tabell for valgt system`;
+  } else {
+    $("av_standing").textContent = "over tabellens \u00f8vre grense (400 l/s type A / 200 l/s type B)";
+  }
+
+  // Liggende ventilert spillvannsledning (Manning-basert tilnærming til figur 8/9)
+  const fall = parseFloat($("av_fall").value) || 0;
+  if (fall > 0 && result > 0) {
+    const pipe = suggestLiggendePipe(system, result, fall);
+    $("av_liggende").innerHTML = pipe
+      ? `${pipe.outer} mm (innv. ${pipe.inner} mm) &middot; kapasitet ${fmt(pipe.cap,1)} l/s ved ${fall}\u2030`
+      : "ingen dimensjon i valgt system holder ved dette fallet";
+  } else {
+    $("av_liggende").textContent = "-";
+  }
+
+  saveState();
+}
 
 function updateFraEffektVisibility() {
   const fluid = $("fe_fluid").value;
@@ -583,10 +798,12 @@ function recalcFraEffektOverride(flow, props, recommendedInner) {
     // (minste gyldige) dimensjonen i systemet - ikke bare ett hakk ned.
     if (Number.isFinite(recommendedInner) && recommendedInner < chosenInner) {
       const rBest = evaluatePipe(flow, recommendedInner, props.rho, props.nu, e);
+      const bestOuter = (PIPE_SYSTEMS[system] || []).find(([outer, inner]) => inner === recommendedInner);
+      const outerLabel = bestOuter ? `${bestOuter[0]} mm (innv. ${recommendedInner} mm)` : `innv. ${recommendedInner} mm`;
       if (rBest) {
         warnBox.style.display = "block";
         warnBox.className = "note warn";
-        warnBox.textContent = `Trykkfallet er lavt her - beste dimensjon (n\u00e6rmest under ${MAX_DPL} Pa/m uten \u00e5 overstige den) er innv. ${recommendedInner} mm, som gir ${fmt(rBest.dpdl,1)} Pa/m. Vurder om den er et bedre/rimeligere valg.`;
+        warnBox.textContent = `Trykkfallet er lavt her - beste dimensjon (n\u00e6rmest under ${MAX_DPL} Pa/m uten \u00e5 overstige den) er ${outerLabel}, som gir ${fmt(rBest.dpdl,1)} Pa/m. Vurder om den er et bedre/rimeligere valg.`;
       }
     }
   }
@@ -752,7 +969,7 @@ function init() {
     btn.addEventListener("click", () => switchView(btn.dataset.view));
   });
 
-  document.querySelectorAll("#view-forbruksvann input, #view-forbruksvann select").forEach(el => {
+  document.querySelectorAll("#fv-vann input, #fv-vann select").forEach(el => {
     el.addEventListener("input", () => { recalcForbruksvann(); recalcMiniTool(); });
   });
   $("eq_enabled").addEventListener("change", recalcEquipment);
@@ -764,6 +981,38 @@ function init() {
     const open = list.classList.toggle("eq-list-collapsed") === false;
     $("eqToggleBtn").classList.toggle("open", open);
     $("eqToggleLabel").textContent = open ? "Skjul utstyrsliste" : "Vis utstyrsliste";
+  });
+
+  // --- Forbruksvann: underfaner (Vann / Avløp) ---
+  document.querySelectorAll(".subtab-bar .subtab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".subtab-bar .subtab").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("#view-forbruksvann .subview").forEach(v => v.classList.remove("active"));
+      btn.classList.add("active");
+      $(btn.dataset.subtab).classList.add("active");
+    });
+  });
+
+  // --- Forbruksvann: Avløp-underfane ---
+  const avSysSel = $("av_system");
+  AVLOP_SYSTEMS.forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    avSysSel.appendChild(o);
+  });
+  document.querySelectorAll("#av_qn, #av_max, #av_kurve, #av_system, #av_fall").forEach(el => {
+    el.addEventListener("input", recalcAvlop);
+  });
+  $("av_eq_enabled").addEventListener("change", recalcAvEquipment);
+  try { $("av_eq_enabled").checked = localStorage.getItem("rorkalk_av_eq_enabled") === "1"; } catch (e) {}
+  renderAvEquipmentList();
+  recalcAvEquipment();
+  recalcAvlop();
+  $("avEqToggleBtn").addEventListener("click", () => {
+    const list = $("avEqList");
+    const open = list.classList.toggle("eq-list-collapsed") === false;
+    $("avEqToggleBtn").classList.toggle("open", open);
+    $("avEqToggleLabel").textContent = open ? "Skjul utstyrsliste" : "Vis utstyrsliste";
   });
 
   // --- Varme/Kjøl: "Rørdimensjon fra effekt" ---

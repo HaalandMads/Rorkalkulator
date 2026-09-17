@@ -236,6 +236,30 @@ input.locked {
 
 #eqList.eq-list-collapsed { display: none; }
 
+.subtab-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.subtab-bar .subtab {
+  flex: 1;
+  padding: 9px 4px;
+  border: 1.5px solid var(--input-border);
+  background: var(--surface);
+  border-radius: 4px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.subtab-bar .subtab.active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.subview { display: none; }
+.subview.active { display: block; }
+
 .eq-toggle-btn {
   width: 100%;
   display: flex;

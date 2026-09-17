@@ -36,6 +36,13 @@
   <!-- ======================= VIEW: FORBRUKSVANN ======================= -->
   <section class="view active" id="view-forbruksvann">
 
+    <div class="subtab-bar">
+      <button type="button" class="subtab active" data-subtab="fv-vann">Vann</button>
+      <button type="button" class="subtab" data-subtab="fv-avlop">Avl&oslash;p</button>
+    </div>
+
+    <div class="subview active" id="fv-vann">
+
     <section class="card">
       <div class="card-title">UTSTYRSLISTE (STANDARD ABONNEMENTSVILK&Aring;R, TABELL 1)</div>
       <div class="card-body">
@@ -167,6 +174,105 @@
         <div class="value" id="calcOut">-</div>
       </div>
     </section>
+
+    </div><!-- /fv-vann -->
+
+    <div class="subview" id="fv-avlop">
+
+    <section class="card">
+      <div class="card-title">UTSTYRSLISTE SPILLVANN (TABELL 13)</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Bruk utstyrsliste for &Sigma;qn / st&oslash;rst tappested<small>L&aring;ser feltene under og fyller dem ut automatisk</small></div>
+          <div class="field">
+            <label class="switch"><input type="checkbox" id="av_eq_enabled"><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div id="avEqList" class="eq-list-collapsed"></div>
+      <button type="button" class="eq-toggle-btn" id="avEqToggleBtn">
+        <span id="avEqToggleLabel">Vis utstyrsliste</span>
+        <svg id="avEqToggleChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="result-row">
+        <div class="label">&Sigma;qn spillvann fra utstyr</div>
+        <div class="value small" id="av_eq_sum">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">St&oslash;rst enkeltutstyr</div>
+        <div class="value small" id="av_eq_max">-</div>
+      </div>
+      <div class="note">Kilde: Standard abonnementsvilk&aring;r for vann og avl&oslash;p &ndash; Tekniske bestemmelser, tabell 13, vedlegg s. 51.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">ST&OslashRSTE SAMTIDIGE BELASTNING (FIGUR 7)</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">&Sigma;qn spillvann (sum normalvannmengde)</div>
+          <div class="field"><input type="number" step="0.01" id="av_qn" value="0"></div>
+        </div>
+        <div class="row">
+          <div class="label">St&oslash;rst enkeltutstyr</div>
+          <div class="field"><input type="number" step="0.01" id="av_max" value="0"></div>
+        </div>
+        <div class="row">
+          <div class="label">Bygningstype</div>
+          <div class="field">
+            <select id="av_kurve">
+              <option value="A">Kurve A &ndash; Bolig/forretning/aldershjem</option>
+              <option value="B">Kurve B &ndash; Sykehus/hotell/skole/badeanlegg</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">St&oslash;rste samtidige belastning</div>
+        <div class="value" id="av_result">-<span class="unit-sm">l/s</span></div>
+      </div>
+      <div class="note">Lest av Figur 7 (digitalisert fra originalgrafen) p&aring; grunnlag av &Sigma;qn spillvann. Kan aldri bli mindre enn normalvannmengden til det utstyret som har st&oslash;rst avl&oslash;psmengde. For vaskerier, industribygg, badeanlegg o.l. m&aring; samtidigheten vurderes i hvert enkelt tilfelle.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">R&Oslash;RFORSLAG AVL&Oslash;P</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">R&oslash;rsystem</div>
+          <div class="field"><select id="av_system"></select></div>
+        </div>
+        <div class="row">
+          <div class="label">Fall p&aring; liggende ledning</div>
+          <div class="field"><input type="number" step="1" id="av_fall" value="20"><span class="unit">&permil;</span></div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">St&aring;ende ventilert (tabell 14)</div>
+        <div class="value small" id="av_standing">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">Liggende ventilert (figur 8/9)</div>
+        <div class="value small" id="av_liggende">-</div>
+      </div>
+      <div class="note">St&aring;ende: eksakt oppslag i tabell 14 (115 mm-trinnet gjelder plast). Liggende: fysikkbasert tiln&aelig;rming til figur 9 (Manning-formel for gravitasjonsstr&oslash;m i glatte plastr&oslash;r, n&#8776;0,010) &ndash; ikke en pikselnøyaktig avlesning av selve diagrammet. Kontroller mot figur 9 for kritiske anlegg. R&oslash;rforslag hentes kun fra PP-Grunnavl&oslash;p, PP avl&oslash;p, PVC-Grunnavl&oslash;p og Overvann, MA og Geberit Silent.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">N&Oslash;KKELREGLER (STANDARD ABONNEMENTSVILK&Aring;R S. 22&ndash;25)</div>
+      <div class="card-body" style="font-size:12.5px; line-height:1.5;">
+        <div class="row"><div class="label">Minste dimensjon utvendig stikkledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 110</div></div>
+        <div class="row"><div class="label">Minste dim. ventilert bunnledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 110</div></div>
+        <div class="row"><div class="label">Minste dim. bunnledning, enkeltutstyr</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 75</div></div>
+        <div class="row"><div class="label">Minste dim. WC-avl&oslash;p</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 90</div></div>
+        <div class="row"><div class="label">Maks WC p&aring; DN 90 st&aring;ende ledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">6 stk</div></div>
+        <div class="row"><div class="label">Maks WC p&aring; DN 110 st&aring;ende ledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">20 stk</div></div>
+        <div class="row"><div class="label">Maks WC p&aring; DN 135 (st&oslash;pejern)/DN 125 (plast)</div><div class="field" style="font-family:var(--mono); font-weight:700;">55 stk</div></div>
+        <div class="row"><div class="label">Minste fall, ikke-ventilert bunnledning</div><div class="field" style="font-family:var(--mono); font-weight:700;">1:60</div></div>
+        <div class="row"><div class="label">Min. ventilasjonsledning (&Sigma;qn &le; 5,0 l/s)</div><div class="field" style="font-family:var(--mono); font-weight:700;">DN 75</div></div>
+      </div>
+      <div class="note warn">Dette er utdrag av grunnregler, ikke en fullstendig dimensjoneringstabell. Selve r&oslash;rdimensjonen (tabell 14 og figur 8/9, st&aring;ende/liggende ventilerte ledninger) er fortsatt basert p&aring; diagrammer jeg ikke har digitalisert data for. Bruk resultatet over sammen med disse grunnreglene til manuell dimensjonering, eller send meg de figurene ogs&aring; om du &oslash;nsker full automatikk.</div>
+    </section>
+
+    </div><!-- /fv-avlop -->
 
   </section>
 
@@ -354,7 +460,7 @@
   <div class="about-card">
     <div class="about-title">Produsert for Haaland AS</div>
     <div class="about-sub">Av Mads Fj&aelig;rem</div>
-    <div class="about-version">Versjon: 0,36</div>
+    <div class="about-version">Versjon: 0,38</div>
     <button class="about-close" id="aboutClose">Lukk</button>
   </div>
 </div>
