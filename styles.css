@@ -392,6 +392,14 @@ table.dimtable tbody td {
 }
 table.dimtable tbody td:first-child { font-family: var(--sans); }
 table.dimtable tbody tr:nth-child(even) { background: #FAFAF8; }
+.dim-group-header {
+  background: var(--copper) !important;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11.5px;
+  font-family: var(--sans);
+  padding: 6px 8px !important;
+}
 
 /* ---------- Bottom tab bar ---------- */
 nav.tabbar {

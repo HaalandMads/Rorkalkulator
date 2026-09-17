@@ -230,6 +230,16 @@ function suggestPipe(system, minDimMm) {
   return null;
 }
 
+// Gruppering for Dimensjoner-fanen, iht. oppsettet i det opprinnelige regnearket
+const SYSTEM_GROUPS = {
+  "Vannfordeling": ["PE-R\u00f8r SDR11", "FlowFit", "Kobber", "Mepla", "LK PAL"],
+  "PE-X systemer": ["Sanipex", "LK PE-X", "Roth Multipex"],
+  "Avl\u00f8p og overvann": ["PP-Grunnavl\u00f8p", "PP avl\u00f8p", "MA", "Pragma Overvann",
+                           "PVC-Grunnavl\u00f8p og Overvann", "Geberit Silent", "Pragma Infra Overvann"],
+  "St\u00e5lr\u00f8r": ["Mapress Galv", "Rillet st\u00e5lr\u00f8r", "Syrefaste st\u00e5lr\u00f8r",
+             "Mapress syrefast", "Bl\u00e5malt mellomserie gjenget r\u00f8r"],
+};
+
 function populateSystemSelects() {
   // Forbruksvann: automatisk rørforslag - kun de 4 mest brukte systemene
   const fvSel = $("fv_system");
@@ -259,17 +269,23 @@ function populateSystemSelects() {
   });
   concSel.value = 30;
 
-  // Dimensjoner-fanen: hele referansetabellen, uendret
+  // Dimensjoner-fanen: hele referansetabellen, gruppert som i regnearket
   const dimSel = $("dim_system");
   dimSel.innerHTML = "";
   const optAll = document.createElement("option");
   optAll.value = "__ALL__";
   optAll.textContent = "Alle systemer";
   dimSel.appendChild(optAll);
-  Object.keys(PIPE_SYSTEMS).forEach(n => {
-    const o = document.createElement("option");
-    o.value = n; o.textContent = n;
-    dimSel.appendChild(o);
+  Object.entries(SYSTEM_GROUPS).forEach(([groupName, names]) => {
+    const grp = document.createElement("optgroup");
+    grp.label = groupName;
+    names.forEach(n => {
+      if (!PIPE_SYSTEMS[n]) return;
+      const o = document.createElement("option");
+      o.value = n; o.textContent = n;
+      grp.appendChild(o);
+    });
+    dimSel.appendChild(grp);
   });
 
   // Ventetid: samme 4 systemer, pluss mulighet for å skrive inn selv
@@ -413,23 +429,22 @@ const EQ_STORE_KEY = "rorkalk_eq_v1";
 const EQUIPMENT_LIST_AVLOP = [
   { name: "Drikkefontene", q: 0.1 },
   { name: "Bid\u00e9", q: 0.3 },
-  { name: "WC", q: 1.8 },
-  { name: "Servant med 1\" bunnventil", q: 0.3 },
   { name: "Urinal (pr. stand) og veggurinal", q: 0.3 },
   { name: "Servant med 1 1/4\" bunnventil", q: 0.4 },
   { name: "Vaskerenne", q: 0.4 },
   { name: "Oppvask (enkel/dobbel) og planvask", q: 0.6 },
-  { name: "Vaskemaskin i leilighet", q: 0.6 },
-  { name: "Oppvaskmaskin i leilighet", q: 0.6 },
+  { name: "Vaskemaskin i bolig", q: 0.6 },
+  { name: "Oppvaskmaskin i bolig", q: 0.6 },
   { name: "Vaskekar", q: 0.6 },
   { name: "Badekar", q: 0.9 },
   { name: "Utslagsvask, laboratorievask", q: 0.9 },
   { name: "Kombinert opp- og utslagsvask", q: 0.9 },
-  { name: "Golvsluk, 75 mm st\u00f8pejern", q: 1.2 },
+  { name: "Gulvsluk, 75 mm st\u00f8pejern", q: 1.2 },
   { name: "Vaskemaskin i fellesvaskeri for boliger", q: 1.2 },
   { name: "Oppvaskmaskin i erverv, liten st\u00f8rrelse", q: 1.2 },
-  { name: "Golvsluk, 75 mm plast", q: 1.5 },
-  { name: "Golvsluk, 110 mm", q: 2.0 },
+  { name: "Gulvsluk, 75 mm plast", q: 1.5 },
+  { name: "WC", q: 1.8 },
+  { name: "Gulvsluk, 110 mm", q: 2.0 },
 ];
 const AV_EQ_STORE_KEY = "rorkalk_av_eq_v1";
 
@@ -482,12 +497,13 @@ function suggestAvlopPipe(system, requiredInnerMm, minOuterMm) {
   return null;
 }
 
-function suggestLiggendePipe(system, flow, fallPermille, minOuterMm) {
+function suggestLiggendePipe(system, flow, fallPermille, minOuterMm, minInnerMm) {
   const list = PIPE_SYSTEMS[system];
   if (!list) return null;
   const minOuter = minOuterMm || 0;
+  const minInner = minInnerMm || 0;
   for (const [outer, inner] of list) {
-    if (outer < minOuter) continue;
+    if (outer < minOuter || inner < minInner) continue;
     const cap = manningFullFlow(inner, fallPermille, MANNING_N_PLAST);
     if (cap >= flow) return { outer, inner, cap };
   }
@@ -713,7 +729,7 @@ function recalcAvlop() {
   const fallRatio = parseFloat($("av_fall_ratio").value) || 60;
   const fall = fallRatio > 0 ? 1000 / fallRatio : 0; // 1:X -> promille
   if (fall > 0) {
-    const pipe = suggestLiggendePipe(system, result, fall, minOuterDN);
+    const pipe = suggestLiggendePipe(system, result, fall, minOuterDN, standingInnerReq);
     $("av_liggende").innerHTML = pipe
       ? `${pipe.outer} mm (innv. ${pipe.inner} mm) &middot; kapasitet ${fmt(pipe.cap,1)} l/s ved 1:${fmt(fallRatio,0)}`
       : "ingen dimensjon i valgt system holder ved dette fallet/kravet";
@@ -964,15 +980,26 @@ function renderDimTable() {
   const search = $("dim_search").value.trim();
   const tbody = $("dimTableBody");
   tbody.innerHTML = "";
-  const systems = sysFilter === "__ALL__" ? Object.keys(PIPE_SYSTEMS) : [sysFilter];
-  systems.forEach(sys => {
+
+  function renderSystemRows(sys) {
     PIPE_SYSTEMS[sys].forEach(([outer, inner]) => {
       if (search && !String(outer).includes(search) && !String(inner).includes(search)) return;
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${sys}</td><td>${outer}</td><td>${inner}</td>`;
       tbody.appendChild(tr);
     });
-  });
+  }
+
+  if (sysFilter === "__ALL__") {
+    Object.entries(SYSTEM_GROUPS).forEach(([groupName, names]) => {
+      const header = document.createElement("tr");
+      header.innerHTML = `<td colspan="3" class="dim-group-header">${groupName}</td>`;
+      tbody.appendChild(header);
+      names.forEach(sys => { if (PIPE_SYSTEMS[sys]) renderSystemRows(sys); });
+    });
+  } else {
+    renderSystemRows(sysFilter);
+  }
 }
 
 /* ============================================================
