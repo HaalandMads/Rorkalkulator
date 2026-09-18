@@ -706,12 +706,12 @@ function recalcAvlop() {
   let ruleNotes = [];
   if (wcCount > 0) {
     minOuterDN = Math.max(minOuterDN, 90);
-    ruleNotes.push("WC: min. DN 90 (helst DN 110)");
+    ruleNotes.push("WC: min. 90 mm (helst 110 mm)");
   }
   if (isBunnledning) {
     const bunnMin = totalEquipCount <= 1 ? 75 : 110;
     minOuterDN = Math.max(minOuterDN, bunnMin);
-    ruleNotes.push(`Bunnledning (${totalEquipCount || 1} utstyr): min. DN ${bunnMin}`);
+    ruleNotes.push(`Bunnledning (${totalEquipCount || 1} utstyr): min. ${bunnMin} mm`);
   }
 
   // Stående ventilert spillvannsledning (tabell 14 - eksakt oppslag)
