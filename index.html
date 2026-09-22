@@ -39,6 +39,7 @@
     <div class="subtab-bar">
       <button type="button" class="subtab active" data-subtab="fv-vann">Vann</button>
       <button type="button" class="subtab" data-subtab="fv-avlop">Avl&oslash;p</button>
+      <button type="button" class="subtab" data-subtab="fv-ekspansjon">Ekspansjon</button>
     </div>
 
     <div class="subview active" id="fv-vann">
@@ -293,6 +294,58 @@
 
     </div><!-- /fv-avlop -->
 
+    <div class="subview" id="fv-ekspansjon">
+
+    <section class="card">
+      <div class="card-title">AQUAPRESSO &ndash; EKSPANSJON VARMTVANNSBEREDER</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Nominelt volum varmtvannsbereder, Vhs</div>
+          <div class="field"><input type="number" step="1" id="aq_vhs" value="200"><span class="unit">liter</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Temperatur (for ekspansjonskoeffisient e)</div>
+          <div class="field">
+            <select id="aq_taz">
+              <option value="20">20 &deg;C</option>
+              <option value="30">30 &deg;C</option>
+              <option value="40">40 &deg;C</option>
+              <option value="50">50 &deg;C</option>
+              <option value="60" selected>60 &deg;C</option>
+              <option value="70">70 &deg;C</option>
+              <option value="80">80 &deg;C</option>
+              <option value="90">90 &deg;C</option>
+              <option value="100">100 &deg;C</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Min. driftstrykk, pa<small>= str&oslash;mningstrykket fra vannverket</small></div>
+          <div class="field"><input type="number" step="0.1" id="aq_pa" value="3.3"><span class="unit">bar</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Sikkerhetsventilens &aring;pningstrykk, psv</div>
+          <div class="field"><input type="number" step="0.1" id="aq_psv" value="10"><span class="unit">bar</span></div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">Fortrykk p0 / e</div>
+        <div class="value small"><span id="aq_p0">-</span> &middot; e=<span id="aq_e">-</span></div>
+      </div>
+      <div class="result-row">
+        <div class="label">N&oslash;dvendig volum VN</div>
+        <div class="value" id="aq_vn">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">Forslag st&oslash;rrelse</div>
+        <div class="value small" id="aq_size">-</div>
+      </div>
+      <div class="note">VN = Vhs &middot; e &middot; (psv+0,5)(p0+1,3) / [(p0+1)(psv&minus;p0&minus;0,8)]. p0 = pa &minus; 0,3. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.31 &ndash; brukt med tillatelse fra IMI, betinget av at IMI-produkter anbefales.</div>
+      <div class="note warn">Velg variant etter behov: <b>Aquapresso AD</b> &ndash; enklest, uten gjennomstr&oslash;mning, veggmontert (mindre st&oslash;rrelser). <b>Aquapresso ADF</b> &ndash; full gjennomstr&oslash;mning (Flowfresh) for h&oslash;yeste hygienestandard, monteres foran bereder, valgfri retning inn topp/bunn. <b>Aquapresso AUF</b> &ndash; gjennomstr&oslash;mning retningsbestemt (inn topp, ut bunn), typisk st&aring;ende montering og st&oslash;rre kapasitet/trykk&oslash;kningssystemer. Alle tre bruker samme VN over &ndash; velg variant ut fra hygienekrav og monteringssted.</div>
+    </section>
+
+    </div><!-- /fv-ekspansjon -->
+
   </section>
 
   <!-- ======================= VIEW: VENTETID ======================= -->
@@ -347,6 +400,14 @@
   </section>
   <!-- ======================= VIEW: VARME/KJØL ======================= -->
   <section class="view" id="view-varmekjol">
+
+    <div class="subtab-bar">
+      <button type="button" class="subtab active" data-subtab="vk-dim">Dimensjonering</button>
+      <button type="button" class="subtab" data-subtab="vk-ekspansjon">Ekspansjon</button>
+    </div>
+
+    <div class="subview active" id="vk-dim">
+
     <section class="card">
       <div class="card-title">R&Oslash;RDIMENSJON FRA EFFEKT</div>
       <div class="card-body">
@@ -465,6 +526,166 @@
       </div>
       <div class="note">Finner st&oslash;rste volumstr&oslash;m (og dermed effekt) denne dimensjonen kan levere uten at trykkfallet overstiger 120 Pa/m. Nyttig n&aring;r r&oslash;ret allerede er lagt/valgt, og du vil sjekke hvor mye effekt det t&aring;ler.</div>
     </section>
+
+    </div><!-- /vk-dim -->
+
+    <div class="subview" id="vk-ekspansjon">
+
+    <div class="subtab-bar">
+      <button type="button" class="subtab active" data-vksub="vk-varme">Varme</button>
+      <button type="button" class="subtab" data-vksub="vk-kjol">Kj&oslash;l</button>
+    </div>
+
+    <div class="vksub active" id="vk-varme">
+    <section class="card">
+      <div class="card-title">STATICO &ndash; EKSPANSJON VARMEANLEGG (EN 12828)</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Installert effekt, Q</div>
+          <div class="field"><input type="number" step="1" id="ev_q" value="100"><span class="unit">kW</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Varmeavgivertype</div>
+          <div class="field">
+            <select id="ev_radtype">
+              <option>Eldre radiatorer</option>
+              <option selected>Nye radiatorer</option>
+              <option>Konvektorer</option>
+              <option>Ventilasjonssystemer</option>
+              <option>Gulvvarme</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Turtemp | Retur (ts | tr)</div>
+          <div class="field">
+            <select id="ev_tstr">
+              <option value="0">90 | 70 &deg;C</option>
+              <option value="1">80 | 60 &deg;C</option>
+              <option value="2">70 | 55 &deg;C</option>
+              <option value="3" selected>70 | 50 &deg;C</option>
+              <option value="4">60 | 40 &deg;C</option>
+              <option value="5">50 | 40 &deg;C</option>
+              <option value="6">40 | 30 &deg;C</option>
+              <option value="7">35 | 28 &deg;C</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">TAZ (maks. systemtemp., for e)<small>Standard = turtemperatur over</small></div>
+          <div class="field"><input type="number" step="1" id="ev_taz" value="70"><span class="unit">&deg;C</span></div>
+        </div>
+        <div class="row">
+          <div class="label">V&aelig;sketype</div>
+          <div class="field">
+            <select id="ev_fluid">
+              <option selected>Vann</option>
+              <option>Etylenglykol (MEG)</option>
+              <option>Propylenglykol (MPG)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" id="ev_conc_row" style="display:none;">
+          <div class="label">Blandingsforhold</div>
+          <div class="field">
+            <select id="ev_conc"><option value="30">30 %</option><option value="40">40 %</option><option value="50">50 %</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Statisk h&oslash;yde, Hst</div>
+          <div class="field"><input type="number" step="0.1" id="ev_hst" value="10"><span class="unit">m</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Sikkerhetsventil, psv</div>
+          <div class="field"><input type="number" step="0.1" id="ev_psv" value="3"><span class="unit">bar</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Minstetrykk pz (kjele/pumpe)<small>0 hvis ikke aktuelt</small></div>
+          <div class="field"><input type="number" step="0.1" id="ev_pz" value="0"><span class="unit">bar</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Voluminnhold lagertank, Vhs<small>0 hvis ingen akkumulatortank</small></div>
+          <div class="field"><input type="number" step="1" id="ev_vhs" value="0"><span class="unit">liter</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Kollektorvolum, Vgsolar<small>0 hvis ikke solfanger</small></div>
+          <div class="field"><input type="number" step="1" id="ev_vgsolar" value="0"><span class="unit">liter</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Vento vakuumutskiller installert<small>Legger til 2 liter</small></div>
+          <div class="field"><label class="switch"><input type="checkbox" id="ev_vento"><span class="slider"></span></label></div>
+        </div>
+      </div>
+      <div class="result-row"><div class="label">Systemvolum Vs</div><div class="value small" id="ev_vs">-</div></div>
+      <div class="result-row"><div class="label">e / p0 / pa / pe</div><div class="value small">e=<span id="ev_e">-</span> &middot; p0=<span id="ev_p0">-</span> &middot; pa=<span id="ev_pa">-</span> &middot; pe=<span id="ev_pe">-</span></div></div>
+      <div class="result-row"><div class="label">N&oslash;dvendig volum VN</div><div class="value" id="ev_vn">-</div></div>
+      <div class="result-row"><div class="label">Forslag st&oslash;rrelse</div><div class="value small" id="ev_size">-</div></div>
+      <div class="note">Vs = vs (tabell 4) &times; Q. Ve = e&middot;(Vs+Vhs). Vwr = maks(0,005&middot;Vs, 3). p0 = Hst/10+pv+0,2 (&ge;pz). pa = p0+0,3. pe = psv&minus;dpsvc. PF = (pe+1)/(pe&minus;p0). VN = (Ve+Vwr+1,1&middot;Vgsolar+2 om Vento)&middot;PF. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.3&ndash;9, EN 12828 &ndash; brukt med tillatelse fra IMI, betinget av at Statico anbefales.</div>
+    </section>
+    </div><!-- /vk-varme -->
+
+    <div class="vksub" id="vk-kjol">
+    <section class="card">
+      <div class="card-title">STATICO &ndash; EKSPANSJON KJ&Oslash;LEANLEGG (EN 12828)</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Systemvolum, Vs<small>Prosjektspesifikt - beregnes ut fra anleggets innhold</small></div>
+          <div class="field"><input type="number" step="1" id="ek_vs" value="500"><span class="unit">liter</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Stagnasjonstemperatur (for e)<small>Vanligvis 40&deg;C n&aring;r anlegget stopper</small></div>
+          <div class="field"><input type="number" step="1" id="ek_stagnt" value="40"><span class="unit">&deg;C</span></div>
+        </div>
+        <div class="row">
+          <div class="label">V&aelig;sketype</div>
+          <div class="field">
+            <select id="ek_fluid">
+              <option>Vann</option>
+              <option selected>Etylenglykol (MEG)</option>
+              <option>Propylenglykol (MPG)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" id="ek_conc_row">
+          <div class="label">Blandingsforhold</div>
+          <div class="field">
+            <select id="ek_conc"><option value="30">30 %</option><option value="40" selected>40 %</option><option value="50">50 %</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Statisk h&oslash;yde, Hst</div>
+          <div class="field"><input type="number" step="0.1" id="ek_hst" value="10"><span class="unit">m</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Sikkerhetsventil, psv</div>
+          <div class="field"><input type="number" step="0.1" id="ek_psv" value="3"><span class="unit">bar</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Minstetrykk pz</div>
+          <div class="field"><input type="number" step="0.1" id="ek_pz" value="0"><span class="unit">bar</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Voluminnhold lagertank, Vhs</div>
+          <div class="field"><input type="number" step="1" id="ek_vhs" value="0"><span class="unit">liter</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Kollektorvolum, Vgsolar</div>
+          <div class="field"><input type="number" step="1" id="ek_vgsolar" value="0"><span class="unit">liter</span></div>
+        </div>
+        <div class="row">
+          <div class="label">Vento vakuumutskiller installert</div>
+          <div class="field"><label class="switch"><input type="checkbox" id="ek_vento"><span class="slider"></span></label></div>
+        </div>
+      </div>
+      <div class="result-row"><div class="label">e / p0 / pa / pe</div><div class="value small">e=<span id="ek_e">-</span> &middot; p0=<span id="ek_p0">-</span> &middot; pa=<span id="ek_pa">-</span> &middot; pe=<span id="ek_pe">-</span></div></div>
+      <div class="result-row"><div class="label">N&oslash;dvendig volum VN</div><div class="value" id="ek_vn">-</div></div>
+      <div class="result-row"><div class="label">Forslag st&oslash;rrelse</div><div class="value small" id="ek_size">-</div></div>
+      <div class="note">Samme formler som for varme, men med kj&oslash;lespesifikk sikkerhetsventiltoleranse (dpsvc = 0,6 bar &le;3 bar, ellers 0,2&middot;psv) og e sl&aring;tt opp ved stagnasjonstemperatur i stedet for turtemperatur. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.3&ndash;9, EN 12828 &ndash; brukt med tillatelse fra IMI, betinget av at Statico anbefales.</div>
+    </section>
+    </div><!-- /vk-kjol -->
+
+    </div><!-- /vk-ekspansjon -->
+
   </section>
 
 </main>
@@ -479,7 +700,7 @@
   <div class="about-card">
     <div class="about-title">Produsert for Haaland AS</div>
     <div class="about-sub">Av Mads Fj&aelig;rem</div>
-    <div class="about-version">Versjon: 0,42</div>
+    <div class="about-version">Versjon: 0,43</div>
     <button class="about-close" id="aboutClose">Lukk</button>
   </div>
 </div>

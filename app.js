@@ -194,7 +194,10 @@ function saveState() {
                "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim",
                "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_system","fe_override",
                "me_tur","me_retur","me_fluid","me_conc","me_system","me_dim",
-               "av_qn","av_max","av_kurve","av_system","av_fall_ratio","av_wc"];
+               "av_qn","av_max","av_kurve","av_system","av_fall_ratio","av_wc",
+               "aq_vhs","aq_taz","aq_pa","aq_psv",
+               "ev_q","ev_radtype","ev_tstr","ev_taz","ev_fluid","ev_conc","ev_hst","ev_psv","ev_pz","ev_vhs","ev_vgsolar",
+               "ek_vs","ek_stagnt","ek_fluid","ek_conc","ek_hst","ek_psv","ek_pz","ek_vhs","ek_vgsolar"];
   const state = {};
   ids.forEach(id => { const el = $(id); if (el) state[id] = el.value; });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
@@ -239,6 +242,72 @@ const SYSTEM_GROUPS = {
   "St\u00e5lr\u00f8r": ["Mapress Galv", "Rillet st\u00e5lr\u00f8r", "Syrefaste st\u00e5lr\u00f8r",
              "Mapress syrefast", "Bl\u00e5malt mellomserie gjenget r\u00f8r"],
 };
+
+/* ============================================================
+   IMI Pneumatex - Beregning og kalkulasjon (ed.7b 05.2026)
+   Ekspansjonskar-dimensjonering. Formler og tabeller gjengitt
+   fra IMI Pneumatex sitt eget beregningsunderlag, brukt med
+   tillatelse fra IMI, betinget av at IMI-produkter (Aquapresso/
+   Statico) anbefales i resultatet.
+   ============================================================ */
+
+// Tabell 1 (s.4): e ekspansjonskoeffisient
+const IMI_T1_COLS = [20,30,40,50,60,70,80,90,100,105,110];
+const IMI_TABLE1 = {
+  "Vann":   [0.0016,0.0041,0.0077,0.0119,0.0169,0.0226,0.0288,0.0357,0.0433,0.0472,0.0513],
+  "MEG_30": [0.0093,0.0129,0.0169,0.0224,0.0286,0.0352,0.0422,0.0497,0.0577,0.0620,0.0663],
+  "MEG_40": [0.0144,0.0189,0.0240,0.0300,0.0363,0.0432,0.0505,0.0582,0.0663,0.0706,0.0750],
+  "MEG_50": [0.0198,0.0251,0.0307,0.0370,0.0437,0.0507,0.0581,0.0660,0.0742,0.0786,0.0830],
+  "MPG_30": [0.0151,0.0207,0.0267,0.0333,0.0401,0.0476,0.0554,0.0639,0.0727,0.0774,0.0823],
+  "MPG_40": [0.0211,0.0272,0.0338,0.0408,0.0481,0.0561,0.0644,0.0731,0.0826,0.0873,0.0924],
+  "MPG_50": [0.0288,0.0355,0.0425,0.0500,0.0577,0.0660,0.0747,0.0839,0.0935,0.0985,0.1036],
+};
+// Tabell 2 (s.5): pv overtrykk mot fordampning (bar), kun TAZ>100°C
+const IMI_T2_COLS = [100,105,110]; // 100 -> pv=0 (implisitt, jf. "damptrykk for TAZ>100°C")
+const IMI_TABLE2 = {
+  "Vann":   [0,0.1948,0.4196],
+  "MEG_30": [0,0.1793,0.3864],
+  "MEG_40": [0,0.1671,0.3601],
+  "MEG_50": [0,0.1523,0.3284],
+  "MPG_30": [0,0.1938,0.4176],
+  "MPG_40": [0,0.1938,0.4175],
+  "MPG_50": [0,0.1938,0.4174],
+};
+// Tabell 4 (s.5): vs (liter/kW) for varmeanlegg
+const IMI_T4_COLS = ["90|70","80|60","70|55","70|50","60|40","50|40","40|30","35|28"];
+const IMI_T4_TSMAX = [90,80,70,70,60,50,40,35];
+const IMI_TABLE4 = {
+  "Eldre radiatorer":     [14.0,16.5,20.1,20.6,27.9,36.6,null,null],
+  "Nye radiatorer":       [9.0,10.1,12.1,11.9,15.1,20.1,null,null],
+  "Konvektorer":          [6.5,7.0,8.4,7.9,9.6,13.4,null,null],
+  "Ventilasjonssystemer": [5.8,6.1,7.2,6.6,7.6,10.8,null,null],
+  "Gulvvarme":            [10.3,11.4,13.3,13.1,15.8,20.3,29.1,37.8],
+};
+
+const AQUAPRESSO_SIZES = [8,12,18,25,35,50,80,140,200,300,400,500,600,800,1000,1500,2000,3000];
+const STATICO_SIZES = [8,18,25,35,50,80,140,200,300,400,500,600,800,1000,1500,2000,3000,4000,5000];
+
+function imiInterp(cols, arr, x) {
+  if (x <= cols[0]) return arr[0];
+  if (x >= cols[cols.length - 1]) return arr[arr.length - 1];
+  let i = 0;
+  while (i < cols.length - 2 && cols[i + 1] < x) i++;
+  const x0 = cols[i], x1 = cols[i + 1], y0 = arr[i], y1 = arr[i + 1];
+  const f = (x - x0) / (x1 - x0);
+  return y0 + (y1 - y0) * f;
+}
+function imiFluidKey(fluid, conc) {
+  if (fluid === "Vann") return "Vann";
+  const prefix = fluid === "Etylenglykol (MEG)" ? "MEG" : "MPG";
+  return prefix + "_" + conc;
+}
+function imiLookupE(fluidKey, t) { return imiInterp(IMI_T1_COLS, IMI_TABLE1[fluidKey], t); }
+function imiLookupPv(fluidKey, t) { return imiInterp(IMI_T2_COLS, IMI_TABLE2[fluidKey], t); }
+function roundUpSize(sizes, v) {
+  for (const s of sizes) if (s >= v) return s;
+  return null;
+}
+
 
 function populateSystemSelects() {
   // Forbruksvann: automatisk rørforslag - kun de 4 mest brukte systemene
@@ -743,6 +812,130 @@ function recalcAvlop() {
   saveState();
 }
 
+/* ============================================================
+   Aquapresso - ekspansjon for varmt forbruksvann (IMI s.30-32)
+   ============================================================ */
+function recalcAquapresso() {
+  const Vhs = parseFloat($("aq_vhs").value) || 0;
+  const TAZ = parseFloat($("aq_taz").value) || 60;
+  const pa = parseFloat($("aq_pa").value) || 0;
+  const psv = parseFloat($("aq_psv").value) || 0;
+
+  const e = imiLookupE("Vann", TAZ);
+  const p0 = pa - 0.3;
+  $("aq_p0").textContent = fmt(p0, 2) + " bar";
+  $("aq_e").textContent = e.toFixed(4);
+
+  let VN = NaN;
+  const denom = (p0 + 1) * (psv - p0 - 0.8);
+  if (denom > 0 && psv > 0) {
+    VN = Vhs * e * (psv + 0.5) * (p0 + 1.3) / denom;
+  }
+
+  if (!Number.isFinite(VN) || VN <= 0) {
+    $("aq_vn").textContent = "-";
+    $("aq_size").textContent = "Sjekk at psv er stort nok i forhold til p0 (psv > p0 + 0,8 bar kreves).";
+    saveState();
+    return;
+  }
+  $("aq_vn").innerHTML = fmt(VN, 1) + ' <span class="unit-sm">liter (n\u00f8dvendig)</span>';
+  const size = roundUpSize(AQUAPRESSO_SIZES, VN);
+  $("aq_size").innerHTML = size
+    ? `Nærmeste standardstørrelse: <b>${size} liter</b>`
+    : "Over standard st\u00f8rrelsessortiment (opptil 3000 l) - kontakt leverand\u00f8r";
+  saveState();
+}
+
+/* ============================================================
+   Statico - ekspansjonskar for varme-/kj\u00f8leanlegg, EN 12828
+   (IMI Pneumatex s.3-11). Statico-spesifikke formler for pe/PF/VN.
+   ============================================================ */
+function staticoCalc(inputs) {
+  const { Vs, Vhs, fluidKey, tForE, Hst, psv, pz, Vgsolar, vento, mode } = inputs;
+  const e = imiLookupE(fluidKey, tForE);
+  const pv = tForE > 100 ? imiLookupPv(fluidKey, tForE) : 0;
+  const p0 = Math.max(Hst / 10 + pv + 0.2, (pz || 0));
+  const pa = p0 + 0.3;
+  let dpsvc;
+  if (mode === "kjol") {
+    dpsvc = psv <= 3 ? 0.6 : 0.2 * psv;
+  } else {
+    dpsvc = psv <= 5 ? 0.5 : 0.1 * psv;
+  }
+  const pe = psv - dpsvc;
+  const PF = (pe + 1) / (pe - p0);
+  const Vwr = Math.max(0.005 * Vs, 3);
+  const Ve = e * (Vs + (Vhs || 0));
+  const ventoAdd = vento ? 2 : 0;
+  const VN = (Ve + Vwr + 1.1 * (Vgsolar || 0) + ventoAdd) * PF;
+  return { e, pv, p0, pa, dpsvc, pe, PF, Vwr, Ve, VN };
+}
+
+function recalcEkspansjonVarme() {
+  const Q = parseFloat($("ev_q").value) || 0;
+  const radType = $("ev_radtype").value;
+  const tsIdx = parseInt($("ev_tstr").value, 10);
+  const vsPerKw = IMI_TABLE4[radType][tsIdx];
+  const Vs = vsPerKw != null ? vsPerKw * Q : 0;
+  $("ev_vs").innerHTML = vsPerKw != null
+    ? `${fmt(Vs,1)} liter <span class="unit-sm">(${vsPerKw} l/kW &times; ${Q} kW)</span>`
+    : "Kombinasjon ikke tabellf\u00f8rt - velg annet temperatursett";
+
+  const TAZ = parseFloat($("ev_taz").value) || IMI_T4_TSMAX[tsIdx];
+  const fluid = $("ev_fluid").value;
+  const conc = $("ev_conc").value;
+  const fluidKey = imiFluidKey(fluid, conc);
+  const Hst = parseFloat($("ev_hst").value) || 0;
+  const psv = parseFloat($("ev_psv").value) || 0;
+  const pz = parseFloat($("ev_pz").value) || 0;
+  const Vhs = parseFloat($("ev_vhs").value) || 0;
+  const Vgsolar = parseFloat($("ev_vgsolar").value) || 0;
+  const vento = $("ev_vento").checked;
+
+  const r = staticoCalc({ Vs, Vhs, fluidKey, tForE: TAZ, Hst, psv, pz, Vgsolar, vento, mode: "varme" });
+  renderStaticoResult("ev", r, Q > 0 && vsPerKw != null);
+  saveState();
+}
+
+function recalcEkspansjonKjol() {
+  const Vs = parseFloat($("ek_vs").value) || 0;
+  const stagnT = parseFloat($("ek_stagnt").value) || 40;
+  const fluid = $("ek_fluid").value;
+  const conc = $("ek_conc").value;
+  const fluidKey = imiFluidKey(fluid, conc);
+  const Hst = parseFloat($("ek_hst").value) || 0;
+  const psv = parseFloat($("ek_psv").value) || 0;
+  const pz = parseFloat($("ek_pz").value) || 0;
+  const Vhs = parseFloat($("ek_vhs").value) || 0;
+  const Vgsolar = parseFloat($("ek_vgsolar").value) || 0;
+  const vento = $("ek_vento").checked;
+
+  const r = staticoCalc({ Vs, Vhs, fluidKey, tForE: stagnT, Hst, psv, pz, Vgsolar, vento, mode: "kjol" });
+  renderStaticoResult("ek", r, Vs > 0);
+  saveState();
+}
+
+function renderStaticoResult(prefix, r, valid) {
+  $(`${prefix}_e`).textContent = r.e.toFixed(4);
+  $(`${prefix}_p0`).textContent = fmt(r.p0, 2) + " bar";
+  $(`${prefix}_pa`).textContent = fmt(r.pa, 2) + " bar";
+  $(`${prefix}_pe`).textContent = fmt(r.pe, 2) + " bar";
+  if (!valid || !Number.isFinite(r.VN) || r.pe <= r.p0) {
+    $(`${prefix}_vn`).textContent = "-";
+    $(`${prefix}_size`).textContent = r.pe <= r.p0
+      ? "Ugyldig: sikkerhetsventilens \u00e5pningstrykk er for lavt i forhold til statisk h\u00f8yde/minstetrykk."
+      : "-";
+    return;
+  }
+  $(`${prefix}_vn`).innerHTML = fmt(r.VN, 1) + ' <span class="unit-sm">liter (n\u00f8dvendig)</span>';
+  const size = roundUpSize(STATICO_SIZES, r.VN);
+  $(`${prefix}_size`).innerHTML = size
+    ? `Anbefalt Statico-st\u00f8rrelse: <b>${size} liter</b>`
+    : "Over standard st\u00f8rrelsessortiment (opptil 5000 l) - kontakt leverand\u00f8r";
+}
+
+
+
 function updateFraEffektVisibility() {
   const fluid = $("fe_fluid").value;
   $("fe_conc_row").style.display = fluid === "Vann" ? "none" : "flex";
@@ -1044,13 +1237,30 @@ function init() {
     $("eqToggleLabel").textContent = open ? "Skjul utstyrsliste" : "Vis utstyrsliste";
   });
 
-  // --- Forbruksvann: underfaner (Vann / Avløp) ---
-  document.querySelectorAll(".subtab-bar .subtab").forEach(btn => {
+  // --- Underfaner (gjenbrukes i Forbruksvann og Varme/Kjøl) ---
+  // Hver .subtab-bar styrer kun .subview-elementene i sin egen nærmeste .view-forelder.
+  // Merk: [data-subtab] skiller disse fra den nøstede Varme/Kjøl-vekslen ([data-vksub]) under.
+  document.querySelectorAll(".subtab-bar").forEach(bar => {
+    const buttons = bar.querySelectorAll(".subtab[data-subtab]");
+    if (!buttons.length) return;
+    const scope = bar.closest(".view");
+    buttons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        buttons.forEach(b => b.classList.remove("active"));
+        scope.querySelectorAll(":scope > .subview").forEach(v => v.classList.remove("active"));
+        btn.classList.add("active");
+        $(btn.dataset.subtab).classList.add("active");
+      });
+    });
+  });
+
+  // --- Nøstet Varme/Kjøl-veksler inni Ekspansjon-underfanen ---
+  document.querySelectorAll('[data-vksub]').forEach(btn => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".subtab-bar .subtab").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll("#view-forbruksvann .subview").forEach(v => v.classList.remove("active"));
+      document.querySelectorAll('[data-vksub]').forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("#vk-ekspansjon .vksub").forEach(v => v.classList.remove("active"));
       btn.classList.add("active");
-      $(btn.dataset.subtab).classList.add("active");
+      $(btn.dataset.vksub).classList.add("active");
     });
   });
 
@@ -1082,6 +1292,12 @@ function init() {
     $("avEqToggleLabel").textContent = open ? "Skjul utstyrsliste" : "Vis utstyrsliste";
   });
 
+  // --- Forbruksvann: Aquapresso-ekspansjon ---
+  document.querySelectorAll("#aq_vhs, #aq_taz, #aq_pa, #aq_psv").forEach(el => {
+    el.addEventListener("input", recalcAquapresso);
+  });
+  recalcAquapresso();
+
   // --- Varme/Kjøl: "Rørdimensjon fra effekt" ---
   document.querySelectorAll("#fe_effekt, #fe_tur, #fe_retur, #fe_fluid, #fe_conc").forEach(el => {
     el.addEventListener("input", () => recalcFraEffekt(false));
@@ -1099,6 +1315,29 @@ function init() {
   $("me_fluid").addEventListener("change", () => { updateMaxEffektVisibility(); recalcMaxEffekt(); });
   $("me_system").addEventListener("change", () => { populateMaxEffektDims(); recalcMaxEffekt(); });
   updateMaxEffektVisibility();
+
+  // --- Varme/Kjøl: "Ekspansjon" (Statico, EN 12828) ---
+  document.querySelectorAll("#ev_q, #ev_radtype, #ev_tstr, #ev_taz, #ev_fluid, #ev_conc, #ev_hst, #ev_psv, #ev_pz, #ev_vhs, #ev_vgsolar, #ev_vento").forEach(el => {
+    el.addEventListener("input", recalcEkspansjonVarme);
+  });
+  $("ev_fluid").addEventListener("change", () => {
+    $("ev_conc_row").style.display = $("ev_fluid").value === "Vann" ? "none" : "flex";
+    recalcEkspansjonVarme();
+  });
+  $("ev_tstr").addEventListener("change", () => {
+    $("ev_taz").value = IMI_T4_TSMAX[parseInt($("ev_tstr").value, 10)];
+    recalcEkspansjonVarme();
+  });
+  recalcEkspansjonVarme();
+
+  document.querySelectorAll("#ek_vs, #ek_stagnt, #ek_fluid, #ek_conc, #ek_hst, #ek_psv, #ek_pz, #ek_vhs, #ek_vgsolar, #ek_vento").forEach(el => {
+    el.addEventListener("input", recalcEkspansjonKjol);
+  });
+  $("ek_fluid").addEventListener("change", () => {
+    $("ek_conc_row").style.display = $("ek_fluid").value === "Vann" ? "none" : "flex";
+    recalcEkspansjonKjol();
+  });
+  recalcEkspansjonKjol();
 
   document.querySelectorAll("#calcSeg button").forEach(btn => {
     btn.addEventListener("click", () => {

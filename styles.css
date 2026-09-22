@@ -259,6 +259,8 @@ input.locked {
 }
 .subview { display: none; }
 .subview.active { display: block; }
+.vksub { display: none; }
+.vksub.active { display: block; }
 
 .eq-toggle-btn {
   width: 100%;
