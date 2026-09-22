@@ -246,9 +246,7 @@ const SYSTEM_GROUPS = {
 /* ============================================================
    IMI Pneumatex - Beregning og kalkulasjon (ed.7b 05.2026)
    Ekspansjonskar-dimensjonering. Formler og tabeller gjengitt
-   fra IMI Pneumatex sitt eget beregningsunderlag, brukt med
-   tillatelse fra IMI, betinget av at IMI-produkter (Aquapresso/
-   Statico) anbefales i resultatet.
+   fra IMI Pneumatex sitt eget beregningsunderlag.
    ============================================================ */
 
 // Tabell 1 (s.4): e ekspansjonskoeffisient

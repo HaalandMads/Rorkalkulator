@@ -304,7 +304,7 @@
           <div class="field"><input type="number" step="1" id="aq_vhs" value="200"><span class="unit">liter</span></div>
         </div>
         <div class="row">
-          <div class="label">Temperatur (for ekspansjonskoeffisient e)</div>
+          <div class="label">Maks temperatur bereder</div>
           <div class="field">
             <select id="aq_taz">
               <option value="20">20 &deg;C</option>
@@ -340,7 +340,7 @@
         <div class="label">Forslag st&oslash;rrelse</div>
         <div class="value small" id="aq_size">-</div>
       </div>
-      <div class="note">VN = Vhs &middot; e &middot; (psv+0,5)(p0+1,3) / [(p0+1)(psv&minus;p0&minus;0,8)]. p0 = pa &minus; 0,3. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.31 &ndash; brukt med tillatelse fra IMI, betinget av at IMI-produkter anbefales.</div>
+      <div class="note">VN = Vhs &middot; e &middot; (psv+0,5)(p0+1,3) / [(p0+1)(psv&minus;p0&minus;0,8)]. p0 = pa &minus; 0,3. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.31.</div>
       <div class="note warn">Velg variant etter behov: <b>Aquapresso AD</b> &ndash; enklest, uten gjennomstr&oslash;mning, veggmontert (mindre st&oslash;rrelser). <b>Aquapresso ADF</b> &ndash; full gjennomstr&oslash;mning (Flowfresh) for h&oslash;yeste hygienestandard, monteres foran bereder, valgfri retning inn topp/bunn. <b>Aquapresso AUF</b> &ndash; gjennomstr&oslash;mning retningsbestemt (inn topp, ut bunn), typisk st&aring;ende montering og st&oslash;rre kapasitet/trykk&oslash;kningssystemer. Alle tre bruker samme VN over &ndash; velg variant ut fra hygienekrav og monteringssted.</div>
     </section>
 
@@ -612,7 +612,7 @@
           <div class="field"><input type="number" step="1" id="ev_vgsolar" value="0"><span class="unit">liter</span></div>
         </div>
         <div class="row">
-          <div class="label">Vento vakuumutskiller installert<small>Legger til 2 liter</small></div>
+          <div class="label">Vakuumutskiller installert<small>Legger til 2 liter</small></div>
           <div class="field"><label class="switch"><input type="checkbox" id="ev_vento"><span class="slider"></span></label></div>
         </div>
       </div>
@@ -620,7 +620,7 @@
       <div class="result-row"><div class="label">e / p0 / pa / pe</div><div class="value small">e=<span id="ev_e">-</span> &middot; p0=<span id="ev_p0">-</span> &middot; pa=<span id="ev_pa">-</span> &middot; pe=<span id="ev_pe">-</span></div></div>
       <div class="result-row"><div class="label">N&oslash;dvendig volum VN</div><div class="value" id="ev_vn">-</div></div>
       <div class="result-row"><div class="label">Forslag st&oslash;rrelse</div><div class="value small" id="ev_size">-</div></div>
-      <div class="note">Vs = vs (tabell 4) &times; Q. Ve = e&middot;(Vs+Vhs). Vwr = maks(0,005&middot;Vs, 3). p0 = Hst/10+pv+0,2 (&ge;pz). pa = p0+0,3. pe = psv&minus;dpsvc. PF = (pe+1)/(pe&minus;p0). VN = (Ve+Vwr+1,1&middot;Vgsolar+2 om Vento)&middot;PF. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.3&ndash;9, EN 12828 &ndash; brukt med tillatelse fra IMI, betinget av at Statico anbefales.</div>
+      <div class="note">Vs = vs (tabell 4) &times; Q. Ve = e&middot;(Vs+Vhs). Vwr = maks(0,005&middot;Vs, 3). p0 = Hst/10+pv+0,2 (&ge;pz). pa = p0+0,3. pe = psv&minus;dpsvc. PF = (pe+1)/(pe&minus;p0). VN = (Ve+Vwr+1,1&middot;Vgsolar+2 om Vento)&middot;PF. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.3&ndash;9, EN 12828.</div>
     </section>
     </div><!-- /vk-varme -->
 
@@ -633,7 +633,7 @@
           <div class="field"><input type="number" step="1" id="ek_vs" value="500"><span class="unit">liter</span></div>
         </div>
         <div class="row">
-          <div class="label">Stagnasjonstemperatur (for e)<small>Vanligvis 40&deg;C n&aring;r anlegget stopper</small></div>
+          <div class="label">Temperatur ved stillstand<small>Vanligvis 40&deg;C n&aring;r anlegget stopper</small></div>
           <div class="field"><input type="number" step="1" id="ek_stagnt" value="40"><span class="unit">&deg;C</span></div>
         </div>
         <div class="row">
@@ -673,14 +673,14 @@
           <div class="field"><input type="number" step="1" id="ek_vgsolar" value="0"><span class="unit">liter</span></div>
         </div>
         <div class="row">
-          <div class="label">Vento vakuumutskiller installert</div>
+          <div class="label">Vakuumutskiller installert</div>
           <div class="field"><label class="switch"><input type="checkbox" id="ek_vento"><span class="slider"></span></label></div>
         </div>
       </div>
       <div class="result-row"><div class="label">e / p0 / pa / pe</div><div class="value small">e=<span id="ek_e">-</span> &middot; p0=<span id="ek_p0">-</span> &middot; pa=<span id="ek_pa">-</span> &middot; pe=<span id="ek_pe">-</span></div></div>
       <div class="result-row"><div class="label">N&oslash;dvendig volum VN</div><div class="value" id="ek_vn">-</div></div>
       <div class="result-row"><div class="label">Forslag st&oslash;rrelse</div><div class="value small" id="ek_size">-</div></div>
-      <div class="note">Samme formler som for varme, men med kj&oslash;lespesifikk sikkerhetsventiltoleranse (dpsvc = 0,6 bar &le;3 bar, ellers 0,2&middot;psv) og e sl&aring;tt opp ved stagnasjonstemperatur i stedet for turtemperatur. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.3&ndash;9, EN 12828 &ndash; brukt med tillatelse fra IMI, betinget av at Statico anbefales.</div>
+      <div class="note">Samme formler som for varme, men med kj&oslash;lespesifikk sikkerhetsventiltoleranse (dpsvc = 0,6 bar &le;3 bar, ellers 0,2&middot;psv) og e sl&aring;tt opp ved stagnasjonstemperatur i stedet for turtemperatur. Kilde: IMI Pneumatex, Beregning og kalkulasjon (ed.7b 05.2026), s.3&ndash;9, EN 12828.</div>
     </section>
     </div><!-- /vk-kjol -->
 
@@ -700,7 +700,7 @@
   <div class="about-card">
     <div class="about-title">Produsert for Haaland AS</div>
     <div class="about-sub">Av Mads Fj&aelig;rem</div>
-    <div class="about-version">Versjon: 0,43</div>
+    <div class="about-version">Versjon: 0,44</div>
     <button class="about-close" id="aboutClose">Lukk</button>
   </div>
 </div>
