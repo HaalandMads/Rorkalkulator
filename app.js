@@ -24,14 +24,19 @@ const PIPE_SYSTEMS = {
   "Syrefaste stålrør": [[21.3,18.1],[21.3,17.3],[26.9,23.7],[26.9,22.9],[33.7,30.5],[33.7,29.7],[42.4,39.2],[42.4,38.4],[48.3,45.1],[48.3,44.3],[60.3,57.1],[60.3,56.3],[76.1,72.9],[76.1,72.1],[88.9,85.7],[88.9,84.9],[114.3,111.1],[114.3,110.3],[114.3,109.1],[139.7,135.7],[139.7,134.5],[168.3,164.3],[168.3,163.1],[168.3,162.3],[219.1,215.1],[219.1,213.9],[219.1,213.1],[273,267.8],[273,267],[323.9,317.9],[355.6,349.6]],
   "Mapress syrefast": [[12,10],[15,13],[18,16],[22,19.6],[28,25.6],[35,32],[42,39],[54,51],[76.1,72.1]],
   "Blåmalt mellomserie gjenget rør": [[17.2,12.5],[21.3,16],[26.9,21.6],[33.7,27.2],[42.4,35.9],[48.3,41.8],[60.3,53],[76.1,68.8],[88.9,80.8],[114.3,105.3]],
+  "Aquatherm Greenpipe": [[20,14.4],[25,18],[32,24.8],[40,31],[50,38.8],[63,48.8],[75,58.2],[90,69.8],[110,85.4],[125,97]],
+  "Aquatherm Bluepipe": [[20,14.4],[25,18],[32,24.8],[40,32.6],[50,40.8],[63,51.4],[75,61.4],[90,73.6],[110,90],[125,102.2],[160,130.8],[200,163.6]],
+  "JRG Sanipex MT": [[16,11.5],[20,15],[26,20],[32,26],[40,33],[50,42],[63,54]],
 };
 
 // Brukes i "Automatisk rørforslag" (Forbruksvann) og rørvalget i Ventetid -
 // alt under "Vannfordeling" og "PE-X systemer" i originalarket, pluss Mapress syrefast.
-const COMMON_SYSTEMS = ["PE-Rør SDR11", "Kobber", "Sanipex", "LK PE-X", "Roth Multipex", "Mapress syrefast"];
+const COMMON_SYSTEMS = ["PE-Rør SDR11", "Kobber", "Sanipex", "LK PE-X", "Roth Multipex", "Mapress syrefast",
+                        "Aquatherm Greenpipe", "JRG Sanipex MT"];
 // Varme/Kjøl-fanen: alt under "Stålrør", pluss FlowFit, LK PAL, Mepla, Kobber og Roth Multipex.
 const HEAT_SYSTEMS = ["Mapress Galv", "Rillet stålrør", "Syrefaste stålrør", "Mapress syrefast",
-                      "Blåmalt mellomserie gjenget rør", "FlowFit", "LK PAL", "Mepla", "Kobber", "Roth Multipex"];
+                      "Blåmalt mellomserie gjenget rør", "FlowFit", "LK PAL", "Mepla", "Kobber", "Roth Multipex",
+                      "Aquatherm Greenpipe", "Aquatherm Bluepipe", "JRG Sanipex MT"];
 // Grovhetskoeffisient pr. rørsystem [mm] - brukes i Darcy-Weisbach/Swamee-Jain
 // for trykkfallsberegningen i Varme/Kjøl-fanen. Stål/støpejern ruere enn
 // kobber/plastbaserte komposittsystemer (PEX/PE-X/PAL), som regnes hydraulisk glatte.
@@ -49,6 +54,9 @@ const PIPE_ROUGHNESS = {
   "Rillet stålrør": 0.15,
   "Syrefaste stålrør": 0.03,
   "Blåmalt mellomserie gjenget rør": 0.15,
+  "Aquatherm Greenpipe": 0.007,
+  "Aquatherm Bluepipe": 0.007,
+  "JRG Sanipex MT": 0.007,
 };
 
 /* ============================================================
@@ -241,6 +249,7 @@ const SYSTEM_GROUPS = {
                            "PVC-Grunnavl\u00f8p og Overvann", "Geberit Silent", "Pragma Infra Overvann"],
   "St\u00e5lr\u00f8r": ["Mapress Galv", "Rillet st\u00e5lr\u00f8r", "Syrefaste st\u00e5lr\u00f8r",
              "Mapress syrefast", "Bl\u00e5malt mellomserie gjenget r\u00f8r"],
+  "Aquatherm / JRG": ["Aquatherm Greenpipe", "Aquatherm Bluepipe", "JRG Sanipex MT"],
 };
 
 /* ============================================================
