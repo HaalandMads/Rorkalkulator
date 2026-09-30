@@ -244,12 +244,12 @@ function suggestPipe(system, minDimMm) {
 // Gruppering for Dimensjoner-fanen, iht. oppsettet i det opprinnelige regnearket
 const SYSTEM_GROUPS = {
   "Vannfordeling": ["PE-R\u00f8r SDR11", "FlowFit", "Kobber", "Mepla", "LK PAL"],
-  "PE-X systemer": ["Sanipex", "LK PE-X", "Roth Multipex"],
+  "PE-X systemer": ["LK PE-X", "Roth Multipex"],
   "Avl\u00f8p og overvann": ["PP-Grunnavl\u00f8p", "PP avl\u00f8p", "MA", "Pragma Overvann",
                            "PVC-Grunnavl\u00f8p og Overvann", "Geberit Silent", "Pragma Infra Overvann"],
   "St\u00e5lr\u00f8r": ["Mapress Galv", "Rillet st\u00e5lr\u00f8r", "Syrefaste st\u00e5lr\u00f8r",
              "Mapress syrefast", "Bl\u00e5malt mellomserie gjenget r\u00f8r"],
-  "Aquatherm / JRG": ["Aquatherm Greenpipe", "Aquatherm Bluepipe", "JRG Sanipex MT"],
+  "Aquatherm / JRG": ["Sanipex", "Aquatherm Greenpipe", "Aquatherm Bluepipe", "JRG Sanipex MT"],
 };
 
 /* ============================================================
