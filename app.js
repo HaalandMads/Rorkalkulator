@@ -9,7 +9,7 @@ const PIPE_SYSTEMS = {
   "Kobber": [[10,8.4],[12,10],[15,13],[18,16],[22,20],[28,25.6],[35,32],[42,39],[54,51],[76.1,72.1]],
   "Mepla": [[16,11.5],[20,15],[25,19],[32,26],[40,33],[50,42],[63,54]],
   "LK PAL": [[16,12],[20,15],[25,18],[32,26],[40,33],[50,42],[63,54],[75,60]],
-  "Sanipex": [[12,8.6],[16,11.6],[20,14.4],[25,18]],
+  "JRG Sanipex": [[12,8.6],[16,11.6],[20,14.4],[25,18]],
   "LK PE-X": [[16,12],[20,15],[25,18]],
   "Roth Multipex": [[12,8],[15,10],[18,12.4],[22,15.2],[28,20]],
   "PP-Grunnavløp": [[110,102.4],[125,116.4],[160,149],[200,186.2],[250,232.8],[315,293.4],[400,372.6]],
@@ -31,7 +31,7 @@ const PIPE_SYSTEMS = {
 
 // Brukes i "Automatisk rørforslag" (Forbruksvann) og rørvalget i Ventetid -
 // alt under "Vannfordeling" og "PE-X systemer" i originalarket, pluss Mapress syrefast.
-const COMMON_SYSTEMS = ["PE-Rør SDR11", "Kobber", "Sanipex", "LK PE-X", "Roth Multipex", "Mapress syrefast",
+const COMMON_SYSTEMS = ["PE-Rør SDR11", "Kobber", "JRG Sanipex", "LK PE-X", "Roth Multipex", "Mapress syrefast",
                         "Aquatherm Greenpipe", "JRG Sanipex MT"];
 // Varme/Kjøl-fanen: alt under "Stålrør", pluss FlowFit, LK PAL, Mepla, Kobber og Roth Multipex.
 const HEAT_SYSTEMS = ["Mapress Galv", "Rillet stålrør", "Syrefaste stålrør", "Mapress syrefast",
@@ -43,7 +43,7 @@ const HEAT_SYSTEMS = ["Mapress Galv", "Rillet stålrør", "Syrefaste stålrør",
 const PIPE_ROUGHNESS = {
   "PE-Rør SDR11": 0.007,
   "Kobber": 0.0015,
-  "Sanipex": 0.007,
+  "JRG Sanipex": 0.007,
   "LK PE-X": 0.007,
   "Roth Multipex": 0.007,
   "FlowFit": 0.007,
@@ -243,13 +243,14 @@ function suggestPipe(system, minDimMm) {
 
 // Gruppering for Dimensjoner-fanen, iht. oppsettet i det opprinnelige regnearket
 const SYSTEM_GROUPS = {
-  "Vannfordeling": ["PE-R\u00f8r SDR11", "FlowFit", "Kobber", "Mepla", "LK PAL"],
-  "PE-X systemer": ["LK PE-X", "Roth Multipex"],
+  "Plastr\u00f8r": ["PE-R\u00f8r SDR11", "Aquatherm Bluepipe", "Aquatherm Greenpipe"],
+  "Alupex": ["FlowFit", "Mepla", "LK PAL", "JRG Sanipex MT"],
+  "PE-X systemer": ["LK PE-X", "Roth Multipex", "JRG Sanipex"],
+  "Kobber": ["Kobber"],
   "Avl\u00f8p og overvann": ["PP-Grunnavl\u00f8p", "PP avl\u00f8p", "MA", "Pragma Overvann",
                            "PVC-Grunnavl\u00f8p og Overvann", "Geberit Silent", "Pragma Infra Overvann"],
   "St\u00e5lr\u00f8r": ["Mapress Galv", "Rillet st\u00e5lr\u00f8r", "Syrefaste st\u00e5lr\u00f8r",
              "Mapress syrefast", "Bl\u00e5malt mellomserie gjenget r\u00f8r"],
-  "Aquatherm / JRG": ["Sanipex", "Aquatherm Greenpipe", "Aquatherm Bluepipe", "JRG Sanipex MT"],
 };
 
 /* ============================================================
