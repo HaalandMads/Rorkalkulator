@@ -27,16 +27,23 @@ const PIPE_SYSTEMS = {
   "Aquatherm Greenpipe": [[20,14.4],[25,18],[32,24.8],[40,31],[50,38.8],[63,48.8],[75,58.2],[90,69.8],[110,85.4],[125,97]],
   "Aquatherm Bluepipe": [[20,14.4],[25,18],[32,24.8],[40,32.6],[50,40.8],[63,51.4],[75,61.4],[90,73.6],[110,90],[125,102.2],[160,130.8],[200,163.6]],
   "JRG Sanipex MT": [[16,11.5],[20,15],[26,20],[32,26],[40,33],[50,42],[63,54]],
+  "Uponor Aqua Pipe": [[15,10],[16,11.6],[18,13]],
+  "Uponor Combipex": [[12,8.6],[15,10],[18,13],[20,14.4],[22,16],[25,18]],
+  "JRG Sanipex Calor": [[12,8.4],[16,12],[20,16.2]],
+  "Uponor Unipipe Plus": [[16,12],[20,15.5],[25,20],[32,26]],
+  "Roth Alu-LaserPlus": [[16,12],[20,16],[26,20],[32,26],[40,33],[50,42]],
 };
 
 // Brukes i "Automatisk rørforslag" (Forbruksvann) og rørvalget i Ventetid -
 // alt under "Vannfordeling" og "PE-X systemer" i originalarket, pluss Mapress syrefast.
 const COMMON_SYSTEMS = ["PE-Rør SDR11", "Kobber", "JRG Sanipex", "LK PE-X", "Roth Multipex", "Mapress syrefast",
-                        "Aquatherm Greenpipe", "JRG Sanipex MT"];
+                        "Aquatherm Greenpipe", "JRG Sanipex MT",
+                        "Uponor Aqua Pipe", "Uponor Combipex", "Uponor Unipipe Plus", "Roth Alu-LaserPlus"];
 // Varme/Kjøl-fanen: alt under "Stålrør", pluss FlowFit, LK PAL, Mepla, Kobber og Roth Multipex.
 const HEAT_SYSTEMS = ["Mapress Galv", "Rillet stålrør", "Syrefaste stålrør", "Mapress syrefast",
                       "Blåmalt mellomserie gjenget rør", "FlowFit", "LK PAL", "Mepla", "Kobber", "Roth Multipex",
-                      "Aquatherm Greenpipe", "Aquatherm Bluepipe", "JRG Sanipex MT"];
+                      "Aquatherm Greenpipe", "Aquatherm Bluepipe", "JRG Sanipex MT",
+                      "Uponor Combipex", "JRG Sanipex Calor", "Uponor Unipipe Plus", "Roth Alu-LaserPlus"];
 // Grovhetskoeffisient pr. rørsystem [mm] - brukes i Darcy-Weisbach/Swamee-Jain
 // for trykkfallsberegningen i Varme/Kjøl-fanen. Stål/støpejern ruere enn
 // kobber/plastbaserte komposittsystemer (PEX/PE-X/PAL), som regnes hydraulisk glatte.
@@ -57,6 +64,11 @@ const PIPE_ROUGHNESS = {
   "Aquatherm Greenpipe": 0.007,
   "Aquatherm Bluepipe": 0.007,
   "JRG Sanipex MT": 0.007,
+  "Uponor Aqua Pipe": 0.007,
+  "Uponor Combipex": 0.007,
+  "JRG Sanipex Calor": 0.007,
+  "Uponor Unipipe Plus": 0.007,
+  "Roth Alu-LaserPlus": 0.007,
 };
 
 /* ============================================================
@@ -244,8 +256,8 @@ function suggestPipe(system, minDimMm) {
 // Gruppering for Dimensjoner-fanen, iht. oppsettet i det opprinnelige regnearket
 const SYSTEM_GROUPS = {
   "Plastr\u00f8r": ["PE-R\u00f8r SDR11", "Aquatherm Bluepipe", "Aquatherm Greenpipe"],
-  "Alupex": ["FlowFit", "Mepla", "LK PAL", "JRG Sanipex MT"],
-  "PE-X systemer": ["LK PE-X", "Roth Multipex", "JRG Sanipex"],
+  "Multilayer": ["FlowFit", "Mepla", "LK PAL", "JRG Sanipex MT", "Uponor Unipipe Plus", "Roth Alu-LaserPlus"],
+  "PE-X systemer": ["LK PE-X", "Roth Multipex", "JRG Sanipex", "Uponor Aqua Pipe", "Uponor Combipex", "JRG Sanipex Calor"],
   "Kobber": ["Kobber"],
   "Avl\u00f8p og overvann": ["PP-Grunnavl\u00f8p", "PP avl\u00f8p", "MA", "Pragma Overvann",
                            "PVC-Grunnavl\u00f8p og Overvann", "Geberit Silent", "Pragma Infra Overvann"],
