@@ -234,7 +234,7 @@ input.locked {
 .eq-stepper .eq-count { font-family: var(--mono); font-size: 15px; font-weight: 700; width: 20px; text-align: center; color: var(--navy); }
 .eq-row.eq-active { background: #FBF5EE; }
 
-#eqList.eq-list-collapsed { display: none; }
+.eq-list-collapsed { display: none; }
 
 .subtab-bar {
   display: flex;
