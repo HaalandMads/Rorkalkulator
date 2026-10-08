@@ -214,6 +214,7 @@ function saveState() {
                "d_q","d_v","v_q","v_d","q_v","q_d","vt_di","vt_qn","vt_l","vt_system","vt_dim",
                "fe_effekt","fe_tur","fe_retur","fe_fluid","fe_conc","fe_system","fe_override",
                "me_tur","me_retur","me_fluid","me_conc","me_system","me_dim",
+               "vm_q","vm_unit","vm_temp","vm_fluid","vm_conc","vm_system",
                "av_qn","av_max","av_kurve","av_system","av_fall_ratio","av_wc",
                "aq_vhs","aq_taz","aq_pa","aq_psv",
                "ev_q","ev_radtype","ev_tstr","ev_taz","ev_fluid","ev_conc","ev_hst","ev_psv","ev_pz","ev_vhs","ev_vgsolar",
@@ -1078,6 +1079,127 @@ function recalcFraEffektOverride(flow, props, recommendedInner) {
    effekt") - finner største volumstrøm/effekt en gitt dimensjon
    tåler før trykkfallet når 120 Pa/m, via binærsøk.
    ============================================================ */
+/* ============================================================
+   Rørdimensjon fra vannmengde (l/s, l/min eller l/h) - samme
+   kriterier som "fra effekt": maks 120 Pa/m, gul 100-120 Pa/m.
+   ============================================================ */
+const VM_UNIT_TO_LS = { ls: 1, lmin: 1 / 60, lh: 1 / 3600 };
+const VM_UNIT_LABEL = { ls: "l/s", lmin: "l/min", lh: "l/h" };
+
+function populateVannmengdeSelects() {
+  const sysSel = $("vm_system");
+  sysSel.innerHTML = "";
+  HEAT_SYSTEMS.forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n;
+    sysSel.appendChild(o);
+  });
+  const concSel = $("vm_conc");
+  concSel.innerHTML = "";
+  GLYCOL_CONCENTRATIONS.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p; o.textContent = p + " %";
+    concSel.appendChild(o);
+  });
+  concSel.value = 30;
+}
+
+function updateVannmengdeVisibility() {
+  $("vm_conc_row").style.display = $("vm_fluid").value === "Vann" ? "none" : "flex";
+}
+
+function populateVmOverrideOptions(preferInner) {
+  const sel = $("vm_override");
+  sel.innerHTML = "";
+  (PIPE_SYSTEMS[$("vm_system").value] || []).forEach(([outer, inner]) => {
+    const o = document.createElement("option");
+    o.value = inner;
+    o.textContent = `${outer} mm  (innv. ${inner} mm)`;
+    sel.appendChild(o);
+  });
+  if (Number.isFinite(preferInner)) sel.value = preferInner;
+}
+
+function recalcVannmengde(resetOverride) {
+  const qIn = parseFloat($("vm_q").value);
+  const unit = $("vm_unit").value;
+  const temp = parseFloat($("vm_temp").value);
+  const fluid = $("vm_fluid").value;
+  const conc = parseFloat($("vm_conc").value) || 0;
+  const system = $("vm_system").value;
+  if (!Number.isFinite(temp)) return;
+
+  const flow = Number.isFinite(qIn) && qIn > 0 ? qIn * VM_UNIT_TO_LS[unit] : NaN;
+  const props = fluidProps(fluid, conc, temp);
+  const fluidLabel = fluid === "Vann" ? "Vann" : `${fluid} ${conc}%`;
+  $("vm_props").innerHTML = Number.isFinite(flow)
+    ? `${fmt(flow, 3)} l/s (${fmt(flow * 60, 2)} l/min \u00b7 ${fmt(flow * 3600, 0)} l/h) &middot; ${fluidLabel} &middot; ` +
+      `\u03c1=${fmt(props.rho,0)} kg/m\u00b3 &middot; \u03bd=${props.nu.toExponential(2)} m\u00b2/s`
+    : "angi vannmengde st\u00f8rre enn 0";
+
+  const dimRow = $("vm_dim_row");
+  dimRow.classList.remove("status-ok", "status-bad", "status-bad-yellow");
+  let dpLabel = "-";
+  let recommendedInner = null;
+  if (Number.isFinite(flow)) {
+    const sug = suggestPipeByPressureDrop(system, flow, props.rho, props.nu);
+    if (sug) {
+      $("vm_dim").textContent = `${sug.outer} mm  (innv. ${sug.inner} mm)`;
+      if (sug.dpdl > WARN_DPL) dimRow.classList.add("status-bad-yellow");
+      dpLabel = `v=${fmt(sug.v,2)} m/s &middot; Re=${fmt(sug.Re,0)} &middot; ` +
+                `<b>${fmt(sug.dpdl,1)} Pa/m</b> (grense ${MAX_DPL} Pa/m)`;
+      recommendedInner = sug.inner;
+    } else {
+      $("vm_dim").textContent = "ingen dimensjon \u2264 " + MAX_DPL + " Pa/m";
+      dimRow.classList.add("status-bad");
+      dpLabel = "st\u00f8rste tilgjengelige dimensjon overstiger fortsatt grensen";
+    }
+  } else {
+    $("vm_dim").textContent = "-";
+  }
+  $("vm_dp").innerHTML = dpLabel;
+
+  if (resetOverride) populateVmOverrideOptions(recommendedInner);
+  recalcVmOverride(flow, props, recommendedInner);
+  saveState();
+}
+
+function recalcVmOverride(flow, props, recommendedInner) {
+  const system = $("vm_system").value;
+  const row = $("vm_override_row");
+  const warnBox = $("vm_override_warn");
+  row.classList.remove("status-ok", "status-bad", "status-bad-yellow");
+  warnBox.style.display = "none";
+  if (!Number.isFinite(flow)) { $("vm_override_result").textContent = "-"; return; }
+  const chosenInner = parseFloat($("vm_override").value);
+  if (!Number.isFinite(chosenInner)) { $("vm_override_result").textContent = "-"; return; }
+
+  const e = PIPE_ROUGHNESS[system];
+  const r = evaluatePipe(flow, chosenInner, props.rho, props.nu, e);
+  if (!r) { $("vm_override_result").textContent = "-"; return; }
+  $("vm_override_result").innerHTML =
+    `v=${fmt(r.v,2)} m/s &middot; Re=${fmt(r.Re,0)} &middot; <b>${fmt(r.dpdl,1)} Pa/m</b>`;
+
+  if (r.dpdl > MAX_DPL) {
+    row.classList.add("status-bad");
+    warnBox.style.display = "block";
+    warnBox.className = "note warn status-text-bad";
+    warnBox.textContent = `For liten dimensjon - trykkfallet (${fmt(r.dpdl,1)} Pa/m) overstiger grensen p\u00e5 ${MAX_DPL} Pa/m. Velg en st\u00f8rre dimensjon.`;
+  } else {
+    if (r.dpdl > WARN_DPL) row.classList.add("status-bad-yellow");
+    if (Number.isFinite(recommendedInner) && recommendedInner < chosenInner) {
+      const rBest = evaluatePipe(flow, recommendedInner, props.rho, props.nu, e);
+      const bestOuter = (PIPE_SYSTEMS[system] || []).find(([outer, inner]) => inner === recommendedInner);
+      const outerLabel = bestOuter ? `${bestOuter[0]} mm (innv. ${recommendedInner} mm)` : `innv. ${recommendedInner} mm`;
+      if (rBest) {
+        warnBox.style.display = "block";
+        warnBox.className = "note warn";
+        warnBox.textContent = `Trykkfallet er lavt her - beste dimensjon (n\u00e6rmest under ${MAX_DPL} Pa/m uten \u00e5 overstige den) er ${outerLabel}, som gir ${fmt(rBest.dpdl,1)} Pa/m. Vurder om den er et bedre/rimeligere valg.`;
+      }
+    }
+  }
+}
+
 function findMaxFlowForDpdl(dia_mm, rho, nu, e_mm, targetDpdl) {
   let lo = 1e-6, hi = 50; // l/s - romslig øvre grense, halveres ned uansett
   let r = evaluatePipe(hi, dia_mm, rho, nu, e_mm);
@@ -1233,6 +1355,7 @@ function switchView(name) {
 function init() {
   populateSystemSelects();
   populateMaxEffektSelects();
+  populateVannmengdeSelects();
   loadState();
   populateVentetidDims();
   loadState(); // gjenopprett lagret dimensjon nå som alternativene finnes
@@ -1328,6 +1451,16 @@ function init() {
   updateFraEffektVisibility();
   populateFeOverrideOptions();
 
+  // --- Varme/Kjøl: "Rørdimensjon fra vannmengde" ---
+  document.querySelectorAll("#vm_q, #vm_unit, #vm_temp, #vm_conc").forEach(el => {
+    el.addEventListener("input", () => recalcVannmengde(false));
+  });
+  $("vm_fluid").addEventListener("change", () => { updateVannmengdeVisibility(); recalcVannmengde(false); });
+  $("vm_system").addEventListener("change", () => recalcVannmengde(true));
+  $("vm_override").addEventListener("input", () => recalcVannmengde(false));
+  updateVannmengdeVisibility();
+  populateVmOverrideOptions();
+
   // --- Varme/Kjøl: "Maks effekt fra dimensjon" ---
   document.querySelectorAll("#me_tur, #me_retur, #me_fluid, #me_conc, #me_dim").forEach(el => {
     el.addEventListener("input", recalcMaxEffekt);
@@ -1382,6 +1515,7 @@ function init() {
   recalcMiniTool();
   recalcVentetid();
   recalcFraEffekt(true);
+  recalcVannmengde(true);
   recalcMaxEffekt();
 
   setupInstallPrompt();

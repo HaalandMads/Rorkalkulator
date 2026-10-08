@@ -475,6 +475,69 @@
     </section>
 
     <section class="card">
+      <div class="card-title">R&Oslash;RDIMENSJON FRA VANNMENGDE</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="label">Vannmengde</div>
+          <div class="field">
+            <input type="number" step="any" id="vm_q" value="0.5" style="width:84px;">
+            <select id="vm_unit" style="min-width:0; width:74px;">
+              <option value="ls" selected>l/s</option>
+              <option value="lmin">l/min</option>
+              <option value="lh">l/h</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Middeltemperatur v&aelig;ske<small>Brukes til &aring; sl&aring; opp &rho; og &nu;</small></div>
+          <div class="field"><input type="number" step="0.1" id="vm_temp" value="50"><span class="unit">&deg;C</span></div>
+        </div>
+        <div class="row">
+          <div class="label">V&aelig;sketype</div>
+          <div class="field">
+            <select id="vm_fluid">
+              <option>Vann</option>
+              <option>Etylenglykol</option>
+              <option>Propylenglykol</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" id="vm_conc_row">
+          <div class="label">Blandingsforhold</div>
+          <div class="field"><select id="vm_conc"></select></div>
+        </div>
+        <div class="row">
+          <div class="label">R&oslash;rsystem</div>
+          <div class="field"><select id="vm_system"></select></div>
+        </div>
+      </div>
+      <div class="result-row">
+        <div class="label">Vannmengde / &rho; / &nu;</div>
+        <div class="value small" id="vm_props">-</div>
+      </div>
+      <div class="result-row" id="vm_dim_row">
+        <div class="label">Anbefalt r&oslash;rdimensjon</div>
+        <div class="value" id="vm_dim">-</div>
+      </div>
+      <div class="result-row">
+        <div class="label">Hastighet / trykkfall</div>
+        <div class="value small" id="vm_dp">-</div>
+      </div>
+      <div class="card-body" style="padding-top:4px;">
+        <div class="row">
+          <div class="label">Overstyr dimensjon</div>
+          <div class="field"><select id="vm_override"></select></div>
+        </div>
+      </div>
+      <div class="result-row" id="vm_override_row">
+        <div class="label">Valgt dim. - hastighet/trykkfall</div>
+        <div class="value small" id="vm_override_result">-</div>
+      </div>
+      <div class="note warn" id="vm_override_warn" style="display:none;"></div>
+      <div class="note">Samme dimensjoneringskriterier som &laquo;R&oslash;rdimensjon fra effekt&raquo;: minste dimensjon i valgt system der trykkfallet ikke overstiger 120 Pa/m (gul = 100&ndash;120 Pa/m). Trykkfall beregnes med Darcy-Weisbach/Swamee-Jain. Kontroller mot faktisk v&aelig;ske ved kritiske anlegg.</div>
+    </section>
+
+    <section class="card">
       <div class="card-title">MAKS EFFEKT FRA DIMENSJON</div>
       <div class="card-body">
         <div class="row">
@@ -700,7 +763,7 @@
   <div class="about-card">
     <div class="about-title">Produsert for Haaland AS</div>
     <div class="about-sub">Av Mads Fj&aelig;rem</div>
-    <div class="about-version">Versjon: 0,49</div>
+    <div class="about-version">Versjon: 0,50</div>
     <button class="about-close" id="aboutClose">Lukk</button>
   </div>
 </div>
